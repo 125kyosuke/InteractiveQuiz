@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Teacher</title><link rel="stylesheet" href="style.css"></head>
+<body>
+<h1>Teacher Panel</h1>
+<div class="box">
+<input id="room" placeholder="Room code">
+<button onclick="create()">Create Room</button>
+<p id="msg"></p>
+</div>
+<div class="box">
+<h2>Progress</h2>
+<div id="teams"></div>
+</div>
+
+<script type="module">
+import {db} from "./firebase.js";
+import {ref,set,onValue} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+let questions=[
+{def:"give up",word:"abandon"},
+{def:"make better",word:"improve"},
+{def:"reach a goal",word:"achieve"},
+{def:"a chance",word:"opportunity"}
+];
+
+window.create=async()=>{
+let r=document.getElementById("room").value;
+await set(ref(db,"rooms/"+r),{
+status:"waiting",
+questions,
+teams:{
+A:{progress:0},B:{progress:0},C:{progress:0}
+}});
+document.getElementById("msg").innerHTML="Room: "+r;
+watch(r);
+}
+
+function watch(r){
+["A","B","C"].forEach(t=>{
+onValue(ref(db,`rooms/${r}/teams/${t}/progress`),s=>{
+let p=s.val()||0;
+document.getElementById("teams").innerHTML+=
+`${t}: ${p}/4<div class="bar"><div class="fill" style="width:${p*25}%"></div></div>`;
+});
+});
+}
+</script>
+</body></html>
