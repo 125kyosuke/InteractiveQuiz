@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Vocabulary Quiz</title>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --p50:#EEEDFE;--p200:#AFA9EC;--p400:#7F77DD;--p600:#534AB7;--p800:#3C3489;--p900:#26215C;
+  --t50:#E1F5EE;--t200:#5DCAA5;--t600:#0F6E56;--t900:#04342C;
+  --c50:#FAECE7;--c200:#F0997B;--c600:#993C1D;--c900:#4A1B0C;
+  --k50:#FBEAF0;--k200:#ED93B1;--k600:#993556;--k900:#4B1528;
+  --a50:#FAEEDA;--a400:#EF9F27;--a900:#412402;
+  --g50:#EAF3DE;--g600:#3B6D11;--g900:#173404;
+  --r50:#FCEBEB;--r400:#E24B4A;--r600:#A32D2D;--r900:#501313;
+  --gray50:#F1EFE8;--gray200:#B4B2A9;--gray600:#5F5E5A;
+  --text:#1a1a1a;--textsec:#555;--textmuted:#888;
+  --bg:#fff;--bgsec:#f7f7f5;--border:rgba(0,0,0,0.12);
+  --rad:14px;--radsm:9px;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bgsec);color:var(--text);min-height:100vh;overflow-x:hidden}
+.screen{display:none;min-height:100vh}
+.screen.active{display:flex;flex-direction:column}
+
+/* ── cards & buttons ── */
+.card{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--rad);padding:1.25rem;margin-bottom:1rem}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 20px;font-size:14px;font-weight:600;border:0.5px solid rgba(0,0,0,0.18);border-radius:var(--radsm);background:var(--bg);color:var(--text);cursor:pointer;transition:all .18s;font-family:inherit;letter-spacing:.01em}
+.btn:hover{background:var(--bgsec);transform:translateY(-1px)}
+.btn:active{transform:scale(.97) translateY(0)}
+.btn-primary{background:var(--p800);border-color:var(--p800);color:#fff;box-shadow:0 2px 8px rgba(60,52,137,.25)}
+.btn-primary:hover{background:var(--p600);border-color:var(--p600);box-shadow:0 4px 14px rgba(60,52,137,.35)}
+.btn-danger{background:var(--r600);border-color:var(--r600);color:#fff}
+.btn-danger:hover{background:var(--r900)}
+.btn-sm{padding:5px 13px;font-size:12px}
+label{font-size:12px;color:var(--textmuted);display:block;margin-bottom:4px;margin-top:10px}
+input[type=text],textarea,select{width:100%;padding:8px 12px;font-size:14px;border:0.5px solid rgba(0,0,0,0.2);border-radius:var(--radsm);background:var(--bg);color:var(--text);font-family:inherit;transition:border-color .15s}
+input[type=text]:focus,textarea:focus,select:focus{outline:none;border-color:var(--p400)}
+textarea{resize:vertical;min-height:140px}
+.err{color:var(--r600);font-size:13px;margin-top:6px;min-height:18px}
+.hidden{display:none!important}
+.row{display:flex;gap:10px;align-items:flex-end}
+.row>*{flex:1}
+
+/* ── MODE PICKER ── */
+.mode-screen{background:linear-gradient(145deg,#1a1060 0%,var(--p900) 50%,#0d0830 100%);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem;position:relative;overflow:hidden}
+.mode-screen::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 30% 20%,rgba(127,119,221,.25) 0%,transparent 60%),radial-gradient(ellipse at 70% 80%,rgba(93,202,165,.15) 0%,transparent 60%);pointer-events:none}
+.mode-logo{font-size:48px;font-weight:800;color:#fff;letter-spacing:-.02em;margin-bottom:6px;position:relative}
+.mode-logo span{color:var(--p200)}
+.mode-tagline{font-size:15px;color:rgba(255,255,255,.5);margin-bottom:2.5rem;position:relative}
+.mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:440px;width:100%;position:relative}
+.mode-card{background:rgba(255,255,255,.08);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.15);border-radius:var(--rad);padding:1.75rem 1.5rem;text-align:center;cursor:pointer;transition:all .2s;color:#fff}
+.mode-card:hover{background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.3);transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,.3)}
+.mode-card:active{transform:translateY(-1px)}
+.mode-icon{font-size:36px;margin-bottom:.75rem;display:block}
+.mode-title{font-size:16px;font-weight:700;margin-bottom:4px}
+.mode-desc{font-size:12px;color:rgba(255,255,255,.5);line-height:1.5}
+
+/* floating particles */
+.particle{position:absolute;border-radius:50%;pointer-events:none;animation:float linear infinite}
+@keyframes float{0%{transform:translateY(100vh) rotate(0deg);opacity:0}10%{opacity:.6}90%{opacity:.4}100%{transform:translateY(-100px) rotate(720deg);opacity:0}}
+
+/* ── HOST SETUP ── */
+.hwrap{max-width:800px;margin:0 auto;padding:2rem 1.5rem;width:100%}
+.logo{font-size:22px;font-weight:800;color:var(--p800);margin-bottom:.25rem;letter-spacing:-.01em}
+.logo span{color:var(--p600)}
+.tabs{display:flex;gap:4px;margin-bottom:1rem}
+.tab{padding:6px 14px;font-size:13px;border-radius:var(--radsm);border:0.5px solid var(--border);cursor:pointer;background:transparent;color:var(--textsec);font-family:inherit;transition:all .15s}
+.tab.active{background:var(--p50);border-color:var(--p200);color:var(--p800);font-weight:600}
+.pair-row{display:flex;gap:8px;margin-bottom:8px;align-items:center}
+.pair-row input{flex:1}
+.pair-row .del{flex-shrink:0;padding:6px 10px;border:0.5px solid rgba(0,0,0,.12);border-radius:7px;background:var(--bg);cursor:pointer;color:var(--textmuted);font-size:14px;font-family:inherit;transition:all .12s}
+.pair-row .del:hover{background:var(--r50);color:var(--r600)}
+.team-name-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-top:12px}
+.team-name-item{padding:8px 12px;border-radius:var(--radsm);border:0.5px solid var(--border);transition:all .15s}
+.team-name-item input{background:transparent;border:none;font-weight:700;font-size:14px;width:100%}
+
+/* ── HOST LOBBY ── */
+.lobby-grid{display:grid;grid-template-columns:230px 1fr;gap:1rem;margin-bottom:1rem}
+.qr-box{text-align:center;padding:1rem}
+.room-code{font-size:34px;font-weight:800;letter-spacing:.14em;color:var(--p800);margin:.5rem 0}
+.room-url{font-size:11px;color:var(--textmuted);word-break:break-all;margin-top:4px}
+.qr-wrap{display:inline-block;padding:14px;background:#fff;border:0.5px solid var(--border);border-radius:var(--rad);margin:.5rem 0;box-shadow:0 2px 12px rgba(0,0,0,.08)}
+.unassigned-pool{min-height:52px;padding:8px;background:var(--gray50);border-radius:var(--radsm);border:1.5px dashed var(--gray200);margin-bottom:8px;display:flex;flex-wrap:wrap;gap:4px;align-content:flex-start;transition:background .15s}
+.unassigned-pool.drag-over{background:var(--p50);border-color:var(--p200)}
+.player-chip{display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:16px;font-size:12px;font-weight:500;border:0.5px solid var(--border);background:var(--bgsec);cursor:grab;user-select:none;transition:all .15s}
+.player-chip:hover{transform:translateY(-1px);box-shadow:0 2px 6px rgba(0,0,0,.1)}
+.player-chip .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.teams-lobby{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:10px}
+.team-col{border-radius:var(--radsm);padding:10px;border:0.5px solid var(--border);min-height:80px;transition:all .15s}
+.team-col.drag-over{transform:scale(1.02);box-shadow:0 4px 16px rgba(0,0,0,.15)}
+.team-col-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.team-col-title{font-size:13px;font-weight:700}
+.team-drop{min-height:40px;display:flex;flex-wrap:wrap;gap:4px;align-content:flex-start}
+
+/* ── HOST GAME (progress) ── */
+.hgame{background:linear-gradient(160deg,#1a1060 0%,var(--p900) 100%);color:#fff;min-height:100vh;flex-direction:column}
+.hgame-inner{max-width:860px;margin:0 auto;padding:2rem 1.5rem;width:100%;flex:1;display:flex;flex-direction:column}
+.hg-topbar{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:2rem}
+.hg-title{font-size:24px;font-weight:800;letter-spacing:-.01em}
+.hg-teams{display:flex;flex-direction:column;gap:1rem;flex:1}
+.progress-card{background:rgba(255,255,255,.07);border:0.5px solid rgba(255,255,255,.1);border-radius:var(--rad);padding:1.25rem 1.5rem;transition:all .3s}
+.progress-card.done{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.2)}
+.pc-header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px}
+.pc-name{font-size:19px;font-weight:700}
+.pc-bar-bg{height:22px;background:rgba(255,255,255,.1);border-radius:11px;overflow:hidden;position:relative}
+.pc-bar-fill{height:100%;border-radius:11px;transition:width .5s cubic-bezier(.4,0,.2,1);position:relative}
+.pc-bar-fill::after{content:'';position:absolute;top:0;left:0;right:0;bottom:0;background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.2) 50%,transparent 100%);animation:shimmer 2s linear infinite}
+@keyframes shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+.pc-members{margin-top:10px;display:flex;gap:6px;flex-wrap:wrap}
+.pc-member{font-size:12px;padding:3px 10px;border-radius:12px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.65);display:flex;align-items:center;gap:5px;transition:all .2s}
+.pc-member.done-m{background:rgba(93,202,165,.2);color:#9FE1CB}
+
+/* ── HOST RESULTS ── */
+.res-screen{min-height:100vh;overflow:hidden;position:relative}
+.res-bg{position:absolute;inset:0;background:linear-gradient(145deg,#0d0830 0%,#1a1060 40%,#0a2a1a 100%)}
+.res-inner{position:relative;z-index:1;max-width:600px;margin:0 auto;padding:2.5rem 1.5rem;text-align:center;display:flex;flex-direction:column;align-items:center;min-height:100vh;justify-content:center}
+.trophy-anim{font-size:80px;margin-bottom:1rem;animation:trophyBounce .6s cubic-bezier(.36,.07,.19,.97) .2s both}
+@keyframes trophyBounce{0%{transform:scale(0) rotate(-15deg);opacity:0}60%{transform:scale(1.2) rotate(5deg)}80%{transform:scale(.95)}100%{transform:scale(1) rotate(0);opacity:1}}
+.winner-hl{font-size:32px;font-weight:800;color:#fff;margin-bottom:.5rem;letter-spacing:-.01em;animation:fadeUp .5s ease .4s both}
+.winner-sub{font-size:15px;color:rgba(255,255,255,.5);margin-bottom:2rem;animation:fadeUp .5s ease .5s both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.confetti-piece{position:absolute;width:10px;height:10px;border-radius:2px;animation:confettiFall linear forwards}
+@keyframes confettiFall{0%{transform:translateY(-20px) rotate(0deg);opacity:1}100%{transform:translateY(110vh) rotate(720deg);opacity:0}}
+.final-table{background:rgba(255,255,255,.08);border:0.5px solid rgba(255,255,255,.12);border-radius:var(--rad);padding:1rem 1.25rem;margin:1rem 0;text-align:left;width:100%;animation:fadeUp .5s ease .6s both}
+.final-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:0.5px solid rgba(255,255,255,.08)}
+.final-row:last-child{border-bottom:none}
+.final-row.first-place{background:rgba(239,159,39,.08);margin:0 -1.25rem;padding:12px 1.25rem;border-radius:var(--radsm)}
+
+/* ── STUDENT JOIN ── */
+.s-join-screen{background:linear-gradient(145deg,#1a1060 0%,var(--p900) 100%);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem;position:relative;overflow:hidden}
+.slogo{font-size:24px;font-weight:800;color:#fff;margin-bottom:.25rem;letter-spacing:-.01em}
+.slogo span{color:var(--p200)}
+.join-card{background:rgba(255,255,255,.97);border-radius:var(--rad);padding:1.75rem 1.5rem;width:100%;max-width:340px;box-shadow:0 8px 40px rgba(0,0,0,.3)}
+.join-title{font-size:17px;font-weight:700;margin-bottom:1rem;color:var(--p900)}
+.join-card label{color:var(--textsec)}
+.join-card input{border-color:rgba(0,0,0,.15)}
+
+/* ── STUDENT WAITING ── */
+.s-wait{background:linear-gradient(145deg,#1a1060 0%,var(--p900) 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:2rem;color:#fff}
+.team-badge-big{display:inline-block;padding:10px 26px;border-radius:24px;font-size:17px;font-weight:700;margin:.75rem 0;border:1.5px solid}
+.spinner{width:22px;height:22px;border:2.5px solid rgba(255,255,255,.2);border-top-color:rgba(255,255,255,.8);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── STUDENT QUIZ ── */
+.s-quiz{min-height:100vh;display:flex;flex-direction:column;background:var(--bgsec)}
+.sq-header{padding:.875rem 1rem .5rem;background:var(--bg);border-bottom:0.5px solid var(--border);position:sticky;top:0;z-index:10}
+.sq-meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.sq-round{font-size:12px;color:var(--textmuted);font-weight:500}
+.sq-score{font-size:13px;font-weight:700;color:var(--p800)}
+.sq-prog-bg{height:5px;background:var(--bgsec);border-radius:3px;overflow:hidden}
+.sq-prog-fill{height:100%;background:linear-gradient(90deg,var(--p600),var(--p400));border-radius:3px;transition:width .4s ease}
+.sq-body{flex:1;padding:1rem;display:flex;flex-direction:column;gap:.875rem}
+
+.def-card{background:linear-gradient(135deg,var(--p800) 0%,var(--p600) 100%);border-radius:var(--rad);padding:1.5rem;text-align:center;color:#fff;box-shadow:0 4px 20px rgba(60,52,137,.3)}
+.def-label{font-size:11px;color:rgba(255,255,255,.6);font-weight:600;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}
+.def-text{font-size:22px;font-weight:700;line-height:1.4}
+
+.timer-row{display:flex;justify-content:space-between;align-items:center}
+.timer-num{font-size:22px;font-weight:800;color:var(--p800);transition:color .3s;min-width:36px;text-align:right}
+.timer-num.urgent{color:var(--r400);animation:pulse .5s ease infinite}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+.timer-bar-bg{flex:1;margin-right:10px;height:8px;background:var(--bgsec);border-radius:4px;overflow:hidden}
+.timer-bar-fill{height:100%;border-radius:4px;transition:width .1s linear,background .3s}
+
+.my-card{border-radius:var(--rad);padding:1.125rem;text-align:center;border:2px solid;transition:all .3s;position:relative;overflow:hidden}
+.my-card::before{content:'';position:absolute;inset:0;opacity:.06;background:radial-gradient(ellipse at top,#fff,transparent)}
+.my-card-label{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px}
+.my-card-word{font-size:30px;font-weight:800;margin-bottom:6px;letter-spacing:-.01em}
+.my-card-hint{font-size:13px;line-height:1.5;opacity:.8}
+
+.discuss-box{background:var(--a50);border:1px solid rgba(239,159,39,.4);border-radius:var(--radsm);padding:10px 14px;font-size:13px;color:var(--a900);text-align:center;line-height:1.6}
+
+.buzz-btn{width:100%;padding:17px;font-size:17px;font-weight:800;border:none;border-radius:var(--rad);cursor:pointer;transition:all .18s;font-family:inherit;letter-spacing:.01em;position:relative;overflow:hidden}
+.buzz-btn::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.15) 0%,transparent 100%);pointer-events:none}
+.buzz-btn.ready{background:linear-gradient(135deg,var(--p800),var(--p600));color:#fff;box-shadow:0 4px 18px rgba(60,52,137,.4)}
+.buzz-btn.ready:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(60,52,137,.5)}
+.buzz-btn.ready:active{transform:scale(.98)}
+.buzz-btn.not-mine{background:var(--gray50);color:var(--gray600);cursor:not-allowed;box-shadow:none}
+.buzz-btn.sent{background:var(--p200);color:var(--p900);cursor:not-allowed}
+
+.mates-card{background:var(--bg);border-radius:var(--rad);border:0.5px solid var(--border);padding:.875rem 1rem}
+.mate-row{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:0.5px solid var(--border);font-size:13px}
+.mate-row:last-child{border-bottom:none}
+.mate-dot{width:9px;height:9px;border-radius:50%;margin-right:8px;display:inline-block;flex-shrink:0}
+
+/* ── ROUND RESULT ── */
+.rr-screen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:2rem;transition:background .3s}
+.rr-screen.correct-bg{background:linear-gradient(145deg,#0a2a1a,#1a4a2a)}
+.rr-screen.wrong-bg{background:linear-gradient(145deg,#2a0a0a,#3a1515)}
+.rr-screen.restart-bg{background:linear-gradient(145deg,#1a0a2a,#2a1545)}
+.rr-icon{font-size:72px;margin-bottom:1rem;animation:iconPop .4s cubic-bezier(.36,.07,.19,.97) both}
+@keyframes iconPop{0%{transform:scale(0);opacity:0}70%{transform:scale(1.2)}100%{transform:scale(1);opacity:1}}
+.rr-title{font-size:28px;font-weight:800;color:#fff;margin-bottom:.5rem}
+.rr-sub{font-size:16px;color:rgba(255,255,255,.6);margin-bottom:.5rem}
+.rr-answer{font-size:14px;color:rgba(255,255,255,.4)}
+.rr-restart-msg{font-size:15px;color:rgba(255,255,255,.7);margin-top:1rem;padding:12px 20px;background:rgba(255,255,255,.1);border-radius:var(--radsm);border:1px solid rgba(255,255,255,.15)}
+
+/* ── STUDENT DONE ── */
+.s-done{background:linear-gradient(145deg,#0a2a1a,#1a4a2a);display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:2rem;color:#fff}
+
+/* ── STUDENT RESULTS ── */
+.sres-screen{min-height:100vh;overflow:hidden;position:relative;display:flex;flex-direction:column}
+.sres-bg{position:absolute;inset:0;background:linear-gradient(145deg,#0d0830 0%,#1a1060 40%,#0a2a1a 100%)}
+.sres-inner{position:relative;z-index:1;max-width:500px;margin:0 auto;padding:2.5rem 1.5rem;text-align:center;display:flex;flex-direction:column;align-items:center;min-height:100vh;justify-content:center}
+
+@media(max-width:600px){
+  .lobby-grid{grid-template-columns:1fr}
+  .mode-grid{grid-template-columns:1fr;max-width:280px}
+  .def-text{font-size:19px}
+  .my-card-word{font-size:26px}
+}
+</style>
+</head>
+<body>
+
+<!-- MODE PICKER -->
+<div class="screen active" id="s-mode">
+<div class="mode-screen">
+  <div id="particleContainer"></div>
+  <div class="mode-logo">Vocabulary<span> Quiz</span></div>
+  <div class="mode-tagline">Team-based vocabulary quiz game</div>
+  <div class="mode-grid">
+    <div class="mode-card" onclick="showScreen('s-host-setup')">
+      <span class="mode-icon">📋</span>
+      <div class="mode-title">Host</div>
+      <div class="mode-desc">Set up & run the game (teacher)</div>
+    </div>
+    <div class="mode-card" onclick="showScreen('s-student-join')">
+      <span class="mode-icon">📱</span>
+      <div class="mode-title">Join</div>
+      <div class="mode-desc">Join with a room code (student)</div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- HOST SETUP -->
+<div class="screen" id="s-host-setup">
+<div class="hwrap">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:1.5rem">
+    <button class="btn btn-sm" onclick="showScreen('s-mode')">← Back</button>
+    <div class="logo">Vocabulary<span> Quiz</span> <span style="font-size:12px;font-weight:500;color:var(--textmuted)">Host Setup</span></div>
+  </div>
+  <div class="card">
+    <h2 style="font-size:16px;font-weight:700;margin-bottom:1rem">Word Set</h2>
+    <div class="tabs">
+      <button class="tab active" onclick="swTab('manual')">Manual</button>
+      <button class="tab" onclick="swTab('bulk')">Bulk paste</button>
+      <button class="tab" onclick="swTab('sample')">Sample</button>
+    </div>
+    <div id="tab-manual">
+      <div style="display:flex;gap:8px;margin-bottom:4px">
+        <span style="flex:1;font-size:11px;color:var(--textmuted);padding:0 12px">Word / phrase</span>
+        <span style="flex:1;font-size:11px;color:var(--textmuted);padding:0 12px">Meaning / definition</span>
+        <span style="width:36px"></span>
+      </div>
+      <div id="pairsBox"></div>
+      <button class="btn btn-sm" style="margin-top:6px" onclick="addPair()">+ Add word</button>
+    </div>
+    <div id="tab-bulk" class="hidden">
+      <label>One pair per line: "word , meaning"</label>
+      <textarea id="bulkTxt" placeholder="apple , a round red fruit&#10;book , pages bound together&#10;cat , a small furry animal"></textarea>
+      <button class="btn btn-primary btn-sm" style="margin-top:8px" onclick="parseBulk()">Import</button>
+    </div>
+    <div id="tab-sample" class="hidden">
+      <p style="font-size:13px;color:var(--textsec);margin-bottom:10px">Load 10 sample English vocabulary words.</p>
+      <button class="btn btn-primary btn-sm" onclick="loadSample()">Use sample set</button>
+    </div>
+  </div>
+  <div class="card">
+    <h2 style="font-size:16px;font-weight:700;margin-bottom:.75rem">Game Settings</h2>
+    <div class="row">
+      <div>
+        <label>Number of teams</label>
+        <select id="teamCount" onchange="rebuildTeamNames()">
+          <option value="2">2 teams</option>
+          <option value="3" selected>3 teams</option>
+          <option value="4">4 teams</option>
+        </select>
+      </div>
+      <div>
+        <label>Time limit per question</label>
+        <select id="timeLimit">
+          <option value="20">20 sec</option>
+          <option value="30" selected>30 sec</option>
+          <option value="45">45 sec</option>
+          <option value="60">60 sec</option>
+        </select>
+      </div>
+    </div>
+    <div class="team-name-grid" id="teamNameGrid"></div>
+  </div>
+  <button class="btn btn-primary" style="font-size:15px;padding:12px 32px" onclick="createRoom()">Create Room →</button>
+  <div class="err" id="setupErr"></div>
+</div>
+</div>
+
+<!-- HOST LOBBY -->
+<div class="screen" id="s-host-lobby">
+<div class="hwrap">
+  <div class="logo" style="margin-bottom:1.5rem">Vocabulary Quiz <span style="font-size:13px;font-weight:500;color:var(--textmuted)">Lobby</span></div>
+  <div class="lobby-grid">
+    <div class="card qr-box">
+      <div style="font-size:12px;font-weight:700;color:var(--textsec)">Show students this QR code</div>
+      <div class="qr-wrap"><div id="qrcode"></div></div>
+      <div class="room-code" id="dispCode">----</div>
+      <div class="room-url" id="dispUrl"></div>
+    </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
+        <h2 style="font-size:15px;font-weight:700;margin:0">Players: <span id="pCount" style="color:var(--p600)">0</span></h2>
+        <button class="btn btn-sm" onclick="autoAssign()">Auto-assign</button>
+      </div>
+      <div style="font-size:12px;color:var(--textmuted);margin-bottom:6px">Unassigned — drag to a team</div>
+      <div class="unassigned-pool" id="unassignedPool"
+        ondragover="event.preventDefault();this.classList.add('drag-over')"
+        ondragleave="this.classList.remove('drag-over')"
+        ondrop="dropUnassign(event)">
+        <span style="font-size:12px;color:var(--textmuted)">Waiting for students to join…</span>
+      </div>
+      <div class="teams-lobby" id="teamsLobby"></div>
+    </div>
+  </div>
+  <div style="display:flex;gap:10px;align-items:center">
+    <button class="btn btn-primary" style="font-size:15px;padding:12px 32px" onclick="startGame()">Start Game →</button>
+    <span class="err" id="lobbyErr"></span>
+  </div>
+</div>
+</div>
+
+<!-- HOST GAME -->
+<div class="screen hgame" id="s-host-game">
+<div class="hgame-inner">
+  <div class="hg-topbar">
+    <div>
+      <div class="hg-title">Game in Progress</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.4);margin-top:3px">Watching team progress</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <div id="hgDoneCount" style="font-size:13px;color:rgba(255,255,255,.4)"></div>
+      <button class="btn btn-danger btn-sm" onclick="forceEnd()">Force End</button>
+    </div>
+  </div>
+  <div class="hg-teams" id="hgTeams"></div>
+  <div style="text-align:center;margin-top:1.5rem;font-size:13px;color:rgba(255,255,255,.25)">
+    Auto-ends when all players finish · Wrong answers restart from Q1
+  </div>
+</div>
+</div>
+
+<!-- HOST RESULTS -->
+<div class="screen res-screen" id="s-host-results">
+<div class="res-bg"></div>
+<div id="confettiContainer" style="position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:0"></div>
+<div class="res-inner">
+  <div class="trophy-anim" id="resTrophy">🏆</div>
+  <div class="winner-hl" id="resWinner"></div>
+  <div class="winner-sub" id="resWinnerSub"></div>
+  <div class="final-table" id="resFinal"></div>
+  <div style="display:flex;gap:10px;justify-content:center;margin-top:1.5rem;animation:fadeUp .5s ease .8s both">
+    <button class="btn btn-primary" onclick="restartGame()">Play Again</button>
+    <button class="btn" style="color:rgba(255,255,255,.7);border-color:rgba(255,255,255,.2);background:rgba(255,255,255,.05)" onclick="showScreen('s-mode')">Back to Menu</button>
+  </div>
+</div>
+</div>
+
+<!-- STUDENT JOIN -->
+<div class="screen" id="s-student-join">
+<div class="s-join-screen">
+  <div id="joinParticles"></div>
+  <div style="position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;width:100%">
+    <div class="slogo" style="margin-bottom:2rem">Vocabulary<span> Quiz</span></div>
+    <div class="join-card">
+      <div class="join-title">Join a Game</div>
+      <label>Room Code</label>
+      <input type="text" id="joinCode" placeholder="e.g. AB12" maxlength="4"
+        style="text-transform:uppercase;font-size:26px;letter-spacing:.16em;font-weight:800;text-align:center"
+        oninput="this.value=this.value.toUpperCase()">
+      <label>Your Name</label>
+      <input type="text" id="joinName" placeholder="Enter your name" maxlength="16">
+      <div class="err" id="joinErr"></div>
+      <button class="btn btn-primary" style="width:100%;margin-top:16px;font-size:15px;padding:13px" onclick="joinRoom()">Join Game →</button>
+    </div>
+    <button class="btn btn-sm" style="margin-top:1rem;color:rgba(255,255,255,.5);border-color:rgba(255,255,255,.2);background:transparent" onclick="showScreen('s-mode')">← Back</button>
+  </div>
+</div>
+</div>
+
+<!-- STUDENT WAITING -->
+<div class="screen" id="s-student-waiting">
+<div class="s-wait">
+  <div class="slogo" style="margin-bottom:1.5rem">Vocabulary<span> Quiz</span></div>
+  <div style="font-size:14px;color:rgba(255,255,255,.6)">Joined! Waiting for the teacher to start…</div>
+  <div class="team-badge-big" id="myTeamBadge" style="margin-top:1rem">Team not assigned yet</div>
+  <div id="waitMates" style="font-size:13px;color:rgba(255,255,255,.4);margin-top:.5rem"></div>
+  <div style="margin-top:2.5rem;display:flex;gap:8px;align-items:center;color:rgba(255,255,255,.4);font-size:13px">
+    <div class="spinner"></div>Waiting for game to start…
+  </div>
+</div>
+</div>
+
+<!-- STUDENT QUIZ -->
+<div class="screen" id="s-student-quiz">
+<div class="s-quiz">
+  <div class="sq-header">
+    <div class="sq-meta">
+      <span class="sq-round" id="sqRound">Question 1/10</span>
+      <span class="sq-score" id="sqScore">0 correct</span>
+    </div>
+    <div class="sq-prog-bg"><div class="sq-prog-fill" id="sqProg" style="width:0%"></div></div>
+  </div>
+  <div class="sq-body">
+    <div class="def-card">
+      <div class="def-label">Find the word that matches this definition</div>
+      <div class="def-text" id="sqDef">―</div>
+    </div>
+    <div class="timer-row">
+      <div class="timer-bar-bg"><div id="sqTimerBar" style="height:100%;border-radius:4px;transition:width .1s linear,background .3s;background:var(--p600)"></div></div>
+      <div class="timer-num" id="sqTimer">30</div>
+    </div>
+    <div class="my-card" id="myCard">
+      <div class="my-card-label" id="myCardLabel">Your Card</div>
+      <div class="my-card-word" id="myCardWord">―</div>
+      <div class="my-card-hint" id="myCardHint"></div>
+    </div>
+    <div class="discuss-box">💬 Discuss with your team — the person holding the correct word should press the button!</div>
+    <button class="buzz-btn not-mine" id="buzzBtn" onclick="buzzIn()">This is the answer!</button>
+    <div class="mates-card">
+      <div style="font-size:12px;color:var(--textmuted);margin-bottom:6px;font-weight:600">TEAMMATES</div>
+      <div id="matesList"></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- STUDENT ROUND RESULT -->
+<div class="screen" id="s-student-rr">
+<div class="rr-screen" id="rrBg">
+  <div class="rr-icon" id="rrIcon">✅</div>
+  <div class="rr-title" id="rrTitle">Correct!</div>
+  <div class="rr-sub" id="rrSub"></div>
+  <div class="rr-answer" id="rrAnswer"></div>
+  <div class="rr-restart-msg hidden" id="rrRestartMsg">⚠️ Wrong answer — restarting from Question 1!</div>
+</div>
+</div>
+
+<!-- STUDENT DONE -->
+<div class="screen" id="s-student-done">
+<div class="s-done">
+  <div style="font-size:56px;margin-bottom:1rem">🎉</div>
+  <div style="font-size:24px;font-weight:800;margin-bottom:.5rem">All done!</div>
+  <div style="font-size:15px;color:rgba(255,255,255,.6);margin-bottom:2rem" id="doneScore"></div>
+  <div style="display:flex;gap:8px;align-items:center;color:rgba(255,255,255,.4);font-size:13px">
+    <div class="spinner" style="border-top-color:rgba(255,255,255,.7)"></div>Waiting for other teams…
+  </div>
+</div>
+</div>
+
+<!-- STUDENT RESULTS -->
+<div class="screen sres-screen" id="s-student-results">
+<div class="sres-bg"></div>
+<div id="sConfetti" style="position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:0"></div>
+<div class="sres-inner">
+  <div style="font-size:72px;margin-bottom:1rem;animation:trophyBounce .6s cubic-bezier(.36,.07,.19,.97) .2s both" id="sResTrophy">🎉</div>
+  <div class="winner-hl" id="sResWinner"></div>
+  <div class="winner-sub" id="sResWinnerSub" style="margin-bottom:1.5rem"></div>
+  <div class="final-table" id="sResFinal"></div>
+  <div style="font-size:13px;color:rgba(255,255,255,.35);margin-top:1rem">Check the teacher's screen for full results!</div>
+</div>
+</div>
+
+<script>
+// ═══════════════════════════════════════
+// FIREBASE CONFIG
+// ═══════════════════════════════════════
+const firebaseConfig = {
+  apiKey: "AIzaSyA5wBjorqyIKwyIGkKzMLNrrgefEgMUU8w",
+  authDomain: "interactive-quiz-ad3e8.firebaseapp.com",
+  databaseURL: "https://interactive-quiz-ad3e8-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "interactive-quiz-ad3e8",
+  storageBucket: "interactive-quiz-ad3e8.firebasestorage.app",
+  messagingSenderId: "21251657109",
+  appId: "1:21251657109:web:a40c5b6491cb52e1e07a9c",
+  measurementId: "G-3NCP4F1FV8"
+};
+
+let db = null, fbReady = false;
+try {
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.database();
+  fbReady = true;
+  console.log("Firebase connected ✓");
+} catch(e) { console.error("Firebase error:", e.message); }
+
+// ═══════════════════════════════════════
+// TEAM META
+// ═══════════════════════════════════════
+const TEAM_META = [
+  {name:"Team 1",bg:"#EEEDFE",border:"#AFA9EC",text:"#26215C",accent:"#534AB7",bar:"#7F77DD"},
+  {name:"Team 2",bg:"#E1F5EE",border:"#5DCAA5",text:"#04342C",accent:"#0F6E56",bar:"#1D9E75"},
+  {name:"Team 3",bg:"#FAECE7",border:"#F0997B",text:"#4A1B0C",accent:"#993C1D",bar:"#D85A30"},
+  {name:"Team 4",bg:"#FBEAF0",border:"#ED93B1",text:"#4B1528",accent:"#993556",bar:"#D4537E"},
+];
+
+// ═══════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════
+let H = { roomCode:null, pairs:[], teams:[], players:{}, timeLimit:30, totalQ:0, scores:[] };
+let S = { roomCode:null, uid:null, name:null, teamIdx:null, questions:[], currentQ:0, score:0, myCardWord:null, myCardIsCorrect:false, buzzed:false, timerIv:null };
+
+// ═══════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════
+function showScreen(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); window.scrollTo(0,0); }
+function $(id){ return document.getElementById(id); }
+function shuffle(a){ const b=[...a]; for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];} return b; }
+function genCode(){ const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; return Array.from({length:4},()=>c[Math.floor(Math.random()*c.length)]).join(''); }
+function genUID(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function tm(i){ return TEAM_META[i%TEAM_META.length]; }
+function dbSet(p,v){ return fbReady?db.ref(p).set(v):Promise.resolve(); }
+function dbUpdate(p,v){ return fbReady?db.ref(p).update(v):Promise.resolve(); }
+function dbOn(p,ev,cb){ if(fbReady) db.ref(p).on(ev,snap=>cb(snap.val())); }
+function dbOff(p){ if(fbReady) db.ref(p).off(); }
+function dbOnce(p,cb){ if(fbReady){ db.ref(p).once('value').then(s=>cb(s.val())).catch(()=>cb(null)); } else { cb(null); } }
+function dbTx(p,fn){ return fbReady?db.ref(p).transaction(fn):Promise.reject('no fb'); }
+
+// ═══════════════════════════════════════
+// PARTICLES (mode screen)
+// ═══════════════════════════════════════
+function spawnParticles(containerId, colors, count){
+  const c = $(containerId); if(!c) return;
+  c.innerHTML='';
+  for(let i=0;i<count;i++){
+    const p=document.createElement('div'); p.className='particle';
+    const size=4+Math.random()*8;
+    p.style.cssText=`width:${size}px;height:${size}px;left:${Math.random()*100}%;background:${colors[Math.floor(Math.random()*colors.length)]};opacity:${.3+Math.random()*.5};animation-duration:${6+Math.random()*10}s;animation-delay:${Math.random()*8}s`;
+    c.appendChild(p);
+  }
+}
+
+// ═══════════════════════════════════════
+// CONFETTI
+// ═══════════════════════════════════════
+function spawnConfetti(containerId){
+  const c=$(containerId); if(!c) return;
+  const colors=['#7F77DD','#5DCAA5','#EF9F27','#ED93B1','#fff','#F0997B'];
+  for(let i=0;i<80;i++){
+    const p=document.createElement('div'); p.className='confetti-piece';
+    p.style.cssText=`left:${Math.random()*100}%;top:-20px;background:${colors[Math.floor(Math.random()*colors.length)]};width:${6+Math.random()*10}px;height:${6+Math.random()*10}px;border-radius:${Math.random()>.5?'50%':'2px'};animation-duration:${2+Math.random()*3}s;animation-delay:${Math.random()*2}s`;
+    c.appendChild(p);
+  }
+}
+
+// ═══════════════════════════════════════
+// WIN PRAISE MESSAGES
+// ═══════════════════════════════════════
+const PRAISE = [
+  "Absolutely INCREDIBLE performance!",
+  "Unbelievable teamwork — you crushed it!",
+  "DOMINANT from start to finish! 🔥",
+  "The vocabulary champions have spoken!",
+  "That was LEGENDARY. Pure brilliance!",
+  "Nobody could stop you — outstanding!",
+];
+function getPraise(){ return PRAISE[Math.floor(Math.random()*PRAISE.length)]; }
+
+// ═══════════════════════════════════════
+// HOST SETUP
+// ═══════════════════════════════════════
+let manualPairs=[], teamNames=['Team 1','Team 2','Team 3','Team 4'];
+
+function swTab(t){
+  ['manual','bulk','sample'].forEach(x=>$('tab-'+x).classList.toggle('hidden',x!==t));
+  document.querySelectorAll('.tabs .tab').forEach((el,i)=>el.classList.toggle('active',['manual','bulk','sample'][i]===t));
+}
+function addPair(w='',m=''){
+  const r=document.createElement('div'); r.className='pair-row';
+  r.innerHTML=`<input type="text" placeholder="Word" value="${esc(w)}" class="wi" oninput="syncPairs()"><input type="text" placeholder="Meaning" value="${esc(m)}" class="mi" oninput="syncPairs()"><button class="del" onclick="this.parentElement.remove();syncPairs()">✕</button>`;
+  $('pairsBox').appendChild(r);
+}
+function syncPairs(){ const ws=document.querySelectorAll('.wi'),ms=document.querySelectorAll('.mi'); manualPairs=[]; ws.forEach((w,i)=>{if(w.value.trim()&&ms[i]&&ms[i].value.trim())manualPairs.push({term:w.value.trim(),def:ms[i].value.trim()});}); }
+function parseBulk(){ const lines=$('bulkTxt').value.split('\n'); const p=lines.map(l=>{const x=l.split(',');return x.length>=2?{term:x[0].trim(),def:x.slice(1).join(',').trim()}:null;}).filter(Boolean); if(!p.length){alert('Use "word , meaning" format');return;} $('pairsBox').innerHTML=''; p.forEach(x=>addPair(x.term,x.def)); swTab('manual'); syncPairs(); }
+function loadSample(){ const s=[{term:'apple',def:'a round red or green fruit'},{term:'book',def:'pages bound together to read'},{term:'cat',def:'a small furry pet that meows'},{term:'dog',def:'a loyal pet that barks'},{term:'elephant',def:'the largest land animal with a trunk'},{term:'flower',def:'the colorful part of a plant'},{term:'guitar',def:'a stringed musical instrument'},{term:'house',def:'a building where people live'},{term:'island',def:'land completely surrounded by water'},{term:'jungle',def:'a dense tropical forest'}]; $('pairsBox').innerHTML=''; s.forEach(x=>addPair(x.term,x.def)); swTab('manual'); syncPairs(); }
+
+function rebuildTeamNames(){
+  const n=parseInt($('teamCount').value);
+  const inputs=document.querySelectorAll('#teamNameGrid input');
+  inputs.forEach((el,i)=>{teamNames[i]=el.value||teamNames[i];});
+  const grid=$('teamNameGrid'); grid.innerHTML='';
+  for(let i=0;i<n;i++){
+    const m=tm(i); const d=document.createElement('div');
+    d.className='team-name-item'; d.style.background=m.bg; d.style.borderColor=m.border;
+    d.innerHTML=`<input type="text" value="${esc(teamNames[i]||m.name)}" style="color:${m.text}" placeholder="Team name" oninput="teamNames[${i}]=this.value">`;
+    grid.appendChild(d);
+  }
+}
+
+// ═══════════════════════════════════════
+// CREATE ROOM
+// ═══════════════════════════════════════
+function createRoom(){
+  syncPairs(); $('setupErr').textContent='';
+  if(manualPairs.length<4){$('setupErr').textContent='Please add at least 4 word pairs.';return;}
+  if(!fbReady){$('setupErr').textContent='Firebase is not connected. Check the console for errors.';return;}
+  document.querySelectorAll('#teamNameGrid input').forEach((el,i)=>{teamNames[i]=el.value||TEAM_META[i].name;});
+  const tc=parseInt($('teamCount').value);
+  H.pairs=[...manualPairs]; H.roomCode=genCode();
+  H.teams=Array.from({length:tc},(_,i)=>({name:teamNames[i]||TEAM_META[i].name,players:[]}));
+  H.scores=new Array(tc).fill(0); H.players={};
+  H.timeLimit=parseInt($('timeLimit').value)||30; H.totalQ=H.pairs.length;
+
+  dbSet('rooms/'+H.roomCode,{
+    status:'lobby',timeLimit:H.timeLimit,totalQ:H.totalQ,
+    teams:H.teams.map(t=>t.name),pairs:H.pairs,players:{},scores:H.scores,
+  }).then(()=>{
+    db.ref('rooms/'+H.roomCode+'/players').on('value',snap=>{
+      const data=snap.val()||{};
+      // merge: update existing entries, keep team assignments
+      Object.entries(data).forEach(([uid,p])=>{
+        H.players[uid]={...H.players[uid],...p};
+        if(p.teamIdx!=null){
+          const t=H.teams[p.teamIdx];
+          if(t&&!t.players.includes(uid)) t.players.push(uid);
+        }
+      });
+      // remove players who left
+      Object.keys(H.players).forEach(uid=>{if(!data[uid]) delete H.players[uid];});
+      renderLobby();
+    });
+    showScreen('s-host-lobby'); buildQR(); buildTeamCols();
+  }).catch(e=>{$('setupErr').textContent='Firebase error: '+e.message;});
+}
+
+function buildQR(){
+  $('dispCode').textContent=H.roomCode;
+  const url=location.origin+location.pathname+'?join='+H.roomCode;
+  $('dispUrl').textContent=url; $('qrcode').innerHTML='';
+  try{new QRCode($('qrcode'),{text:url,width:170,height:170,colorDark:'#26215C',colorLight:'#fff'});}catch(e){}
+}
+
+// ── drag & drop ──
+let draggingUID=null;
+function buildTeamCols(){
+  const grid=$('teamsLobby'); grid.innerHTML='';
+  H.teams.forEach((team,i)=>{
+    const m=tm(i); const col=document.createElement('div'); col.className='team-col';
+    col.style.background=m.bg; col.style.borderColor=m.border;
+    col.innerHTML=`<div class="team-col-head"><span class="team-col-title" style="color:${m.text}">${esc(team.name)}</span><span style="font-size:11px;color:${m.text};opacity:.6" id="tc${i}">0</span></div><div class="team-drop" id="td${i}" ondragover="event.preventDefault();this.closest('.team-col').classList.add('drag-over')" ondragleave="this.closest('.team-col').classList.remove('drag-over')" ondrop="dropTeam(event,${i})"></div>`;
+    grid.appendChild(col);
+  });
+}
+function renderLobby(){
+  const pool=$('unassignedPool'); pool.innerHTML='';
+  let un=0;
+  Object.entries(H.players).forEach(([uid,p])=>{if(p.teamIdx==null){un++;pool.appendChild(makeChip(uid,p.name,null));}});
+  if(!un) pool.innerHTML='<span style="font-size:12px;color:var(--textmuted)">All assigned ✓</span>';
+  $('pCount').textContent=Object.keys(H.players).length;
+  H.teams.forEach((t,i)=>{
+    const zone=$('td'+i); if(!zone)return; zone.innerHTML='';
+    // Rebuild players list from H.players to avoid stale refs
+    t.players=t.players.filter(uid=>H.players[uid]);
+    t.players.forEach(uid=>{const p=H.players[uid];if(p)zone.appendChild(makeChip(uid,p.name,i));});
+    const cnt=$('tc'+i); if(cnt) cnt.textContent=t.players.length;
+  });
+}
+function makeChip(uid,name,ti){
+  const c=document.createElement('div'); c.className='player-chip'; c.draggable=true; c.dataset.uid=uid;
+  const m=ti!=null?tm(ti):null;
+  if(m){c.style.background=m.bg;c.style.borderColor=m.border;}
+  c.innerHTML=`<span class="dot" style="background:${m?m.accent:'#ccc'}"></span><span>${esc(name)}</span>`;
+  c.addEventListener('dragstart',()=>draggingUID=uid);
+  c.addEventListener('dblclick',()=>removeFromTeam(uid));
+  return c;
+}
+function dropTeam(e,ti){
+  e.preventDefault(); document.querySelectorAll('.team-col').forEach(c=>c.classList.remove('drag-over'));
+  const uid=draggingUID; if(!uid||!H.players[uid])return;
+  H.teams.forEach(t=>t.players=t.players.filter(u=>u!==uid));
+  H.teams[ti].players.push(uid); H.players[uid].teamIdx=ti;
+  dbSet('rooms/'+H.roomCode+'/players/'+uid+'/teamIdx',ti);
+  draggingUID=null; renderLobby();
+}
+function dropUnassign(e){
+  e.preventDefault(); $('unassignedPool').classList.remove('drag-over');
+  const uid=draggingUID; if(!uid||!H.players[uid])return;
+  H.teams.forEach(t=>t.players=t.players.filter(u=>u!==uid));
+  H.players[uid].teamIdx=null;
+  dbSet('rooms/'+H.roomCode+'/players/'+uid+'/teamIdx',null);
+  draggingUID=null; renderLobby();
+}
+function removeFromTeam(uid){ H.teams.forEach(t=>t.players=t.players.filter(u=>u!==uid)); if(H.players[uid])H.players[uid].teamIdx=null; dbSet('rooms/'+H.roomCode+'/players/'+uid+'/teamIdx',null); renderLobby(); }
+function autoAssign(){ const uids=shuffle(Object.keys(H.players)); H.teams.forEach(t=>t.players=[]); uids.forEach((uid,i)=>{const ti=i%H.teams.length;H.teams[ti].players.push(uid);H.players[uid].teamIdx=ti;dbSet('rooms/'+H.roomCode+'/players/'+uid+'/teamIdx',ti);}); renderLobby(); }
+
+// ═══════════════════════════════════════
+// START GAME
+// ═══════════════════════════════════════
+function startGame(){
+  $('lobbyErr').textContent='';
+  const total=Object.keys(H.players).length;
+  if(total===0){$('lobbyErr').textContent='No students have joined yet. Share the QR code!';return;}
+  if(Object.values(H.players).some(p=>p.teamIdx==null)){$('lobbyErr').textContent='Please assign all players to a team first.';return;}
+  _startGame();
+}
+function _startGame(){
+  H.scores=new Array(H.teams.length).fill(0);
+  const playerUpdates={};
+  Object.entries(H.players).forEach(([uid,p])=>{
+    const qs=shuffle([...H.pairs]);
+    playerUpdates[uid]={...p,questions:qs,currentQ:0,score:0,solved:0,done:false};
+    H.players[uid]=playerUpdates[uid];
+  });
+  dbUpdate('rooms/'+H.roomCode,{status:'game',players:playerUpdates,scores:H.scores}).then(()=>{
+    showScreen('s-host-game'); listenHostProgress();
+  }).catch(e=>{$('lobbyErr').textContent='Error: '+e.message;});
+}
+
+// ═══════════════════════════════════════
+// HOST PROGRESS
+// ═══════════════════════════════════════
+function listenHostProgress(){
+  db.ref('rooms/'+H.roomCode+'/players').on('value',snap=>{
+    H.players=snap.val()||{};
+    renderHostProgress();
+    const all=Object.values(H.players);
+    if(all.length>0&&all.every(p=>p.done)) setTimeout(showHostResults,1500);
+  });
+}
+function renderHostProgress(){
+  const container=$('hgTeams'); container.innerHTML='';
+  const total=H.totalQ;
+  H.teams.forEach((team,ti)=>{
+    const m=tm(ti);
+    const members=team.players.map(uid=>H.players[uid]).filter(Boolean);
+    const avgSolved=members.length?members.reduce((s,p)=>s+(p.solved||0),0)/members.length:0;
+    const allDone=members.length>0&&members.every(p=>p.done);
+    const pct=total>0?Math.min(100,Math.round(avgSolved/total*100)):0;
+    const card=document.createElement('div'); card.className='progress-card'+(allDone?' done':'');
+    card.innerHTML=`
+      <div class="pc-header">
+        <span class="pc-name" style="color:${m.bar}">${esc(team.name)}</span>
+        <span style="color:rgba(255,255,255,.45);font-size:14px">${allDone?'✓ Finished!':Math.round(avgSolved)+' / '+total}</span>
+      </div>
+      <div class="pc-bar-bg"><div class="pc-bar-fill" style="width:${pct}%;background:${m.bar}"></div></div>
+      <div class="pc-members">${members.map(p=>`<span class="pc-member${p.done?' done-m':''}">${p.done?'✓':'·'} ${esc(p.name||'?')}</span>`).join('')}</div>`;
+    container.appendChild(card);
+  });
+  const all=Object.values(H.players);
+  $('hgDoneCount').textContent=`${all.filter(p=>p.done).length} / ${all.length} done`;
+}
+function forceEnd(){ if(!confirm('Force end the game?'))return; dbUpdate('rooms/'+H.roomCode,{status:'results'}); showHostResults(); }
+function showHostResults(){
+  db.ref('rooms/'+H.roomCode+'/players').off();
+  H.teams.forEach((team,ti)=>{H.scores[ti]=team.players.reduce((s,uid)=>s+(H.players[uid]&&H.players[uid].score||0),0);});
+  dbUpdate('rooms/'+H.roomCode,{status:'results',scores:H.scores,teamNames:H.teams.map(t=>t.name)});
+  const sorted=H.scores.map((s,i)=>({s,i})).sort((a,b)=>b.s-a.s);
+  const wi=sorted[0].i;
+  $('resWinner').textContent=H.teams[wi].name+' Wins! 🏆';
+  $('resWinnerSub').textContent=getPraise();
+  const tbl=$('resFinal'); tbl.innerHTML='';
+  sorted.forEach((item,rank)=>{
+    const row=document.createElement('div'); row.className='final-row'+(rank===0?' first-place':'');
+    row.innerHTML=`<span style="font-size:15px">${['🥇','🥈','🥉'][rank]||(rank+1)+'.'} <span style="font-weight:700;color:rgba(255,255,255,.9)">${esc(H.teams[item.i].name)}</span></span><span style="font-size:22px;font-weight:800;color:${tm(item.i).bar}">${item.s} pts</span>`;
+    tbl.appendChild(row);
+  });
+  showScreen('s-host-results');
+  setTimeout(()=>spawnConfetti('confettiContainer'),300);
+}
+function restartGame(){
+  H.scores=new Array(H.teams.length).fill(0);
+  const playerUpdates={};
+  Object.entries(H.players).forEach(([uid,p])=>{const qs=shuffle([...H.pairs]);playerUpdates[uid]={...p,questions:qs,currentQ:0,score:0,solved:0,done:false};H.players[uid]=playerUpdates[uid];});
+  dbUpdate('rooms/'+H.roomCode,{status:'game',players:playerUpdates,scores:H.scores}).then(()=>{showScreen('s-host-game');listenHostProgress();});
+}
+
+// ═══════════════════════════════════════
+// STUDENT: JOIN
+// ═══════════════════════════════════════
+function joinRoom(){
+  const code=$('joinCode').value.trim().toUpperCase();
+  const name=$('joinName').value.trim();
+  $('joinErr').textContent='';
+  if(code.length!==4){$('joinErr').textContent='Room code must be 4 characters.';return;}
+  if(!name){$('joinErr').textContent='Please enter your name.';return;}
+  if(!fbReady){$('joinErr').textContent='Not connected to Firebase. Please reload.';return;}
+  S.roomCode=code; S.name=name; S.uid=genUID();
+  dbOnce('rooms/'+code,data=>{
+    if(!data){$('joinErr').textContent='Room "'+code+'" not found. Check the code.';return;}
+    if(data.status==='results'){$('joinErr').textContent='This game has already ended.';return;}
+    dbSet('rooms/'+code+'/players/'+S.uid,{name,teamIdx:null,solved:0,score:0,done:false,currentQ:0})
+      .then(()=>{showScreen('s-student-waiting');listenStudent();})
+      .catch(e=>{$('joinErr').textContent='Error joining: '+e.message;});
+  });
+}
+
+function listenStudent(){
+  const code=S.roomCode;
+  db.ref('rooms/'+code+'/players/'+S.uid+'/teamIdx').on('value',snap=>{
+    const ti=snap.val();
+    if(ti!=null){
+      S.teamIdx=ti; const m=tm(ti);
+      dbOnce('rooms/'+code+'/teams',names=>{
+        const badge=$('myTeamBadge');
+        badge.textContent=(names&&names[ti])||'Team '+(ti+1);
+        badge.style.background=m.bg; badge.style.color=m.text; badge.style.border='1.5px solid '+m.border;
+      });
+    }
+  });
+  db.ref('rooms/'+code+'/status').on('value',snap=>{
+    const st=snap.val();
+    if(st==='game') startStudentGame();
+    if(st==='results') showStudentResults();
+  });
+}
+
+// ═══════════════════════════════════════
+// STUDENT: GAME
+// ═══════════════════════════════════════
+function startStudentGame(){
+  dbOnce('rooms/'+S.roomCode+'/players/'+S.uid+'/questions',qs=>{
+    S.questions=qs||[]; S.currentQ=0; S.score=0;
+    if(!S.questions.length){studentDone();return;}
+    loadStudentQuestion();
+  });
+}
+
+function loadStudentQuestion(){
+  clearInterval(S.timerIv);
+  if(S.currentQ>=S.questions.length){studentDone();return;}
+  const q=S.questions[S.currentQ];
+  const total=S.questions.length;
+  const tl=H.timeLimit||30;
+
+  assignMyCard(q,()=>{
+    showScreen('s-student-quiz');
+    $('sqRound').textContent=`Question ${S.currentQ+1} of ${total}`;
+    $('sqScore').textContent=`${S.score} correct`;
+    $('sqProg').style.width=Math.round(S.currentQ/total*100)+'%';
+    $('sqDef').textContent=q.def;
+    S.buzzed=false;
+
+    const m=tm(S.teamIdx||0);
+    const myCard=$('myCard');
+    if(S.myCardIsCorrect){
+      myCard.style.background=m.bg; myCard.style.borderColor=m.accent;
+      $('myCardLabel').textContent='YOUR CARD — correct answer!'; $('myCardLabel').style.color=m.accent;
+      $('myCardWord').textContent=S.myCardWord; $('myCardWord').style.color=m.text;
+      $('myCardHint').textContent='Tell your teammates and press the button!'; $('myCardHint').style.color=m.accent;
+      const b=$('buzzBtn'); b.className='buzz-btn ready'; b.disabled=false; b.textContent='✓  This is the answer!';
+    } else {
+      myCard.style.background='var(--bgsec)'; myCard.style.borderColor='var(--border)';
+      $('myCardLabel').textContent='YOUR CARD — not the answer'; $('myCardLabel').style.color='var(--textmuted)';
+      $('myCardWord').textContent=S.myCardWord; $('myCardWord').style.color='var(--text)';
+      $('myCardHint').textContent='Find the teammate with the correct word!'; $('myCardHint').style.color='var(--textmuted)';
+      const b=$('buzzBtn'); b.className='buzz-btn not-mine'; b.disabled=true; b.textContent='Not my card — keep looking!';
+    }
+    renderMates();
+
+    // timer
+    let t=tl;
+    $('sqTimer').textContent=t; $('sqTimerBar').style.width='100%';
+    $('sqTimer').className='timer-num'; $('sqTimerBar').style.background='var(--p600)';
+    S.timerIv=setInterval(()=>{
+      t--; $('sqTimer').textContent=t;
+      const pct=Math.max(0,t/tl*100); $('sqTimerBar').style.width=pct+'%';
+      if(t<=5){ $('sqTimer').className='timer-num urgent'; $('sqTimerBar').style.background='var(--r400)'; }
+      if(t<=0){ clearInterval(S.timerIv); timeUpStudent(q); }
+    },1000);
+
+    listenBuzz(q);
+  });
+}
+
+function assignMyCard(q,cb){
+  dbOnce('rooms/'+S.roomCode+'/players',allP=>{
+    if(!allP){S.myCardIsCorrect=false;S.myCardWord='?';cb();return;}
+    const teammates=Object.keys(allP).filter(uid=>allP[uid].teamIdx===S.teamIdx);
+    const cardKey='rooms/'+S.roomCode+'/cardAssign/q'+S.currentQ+'t'+S.teamIdx;
+    dbTx(cardKey,cur=>{if(cur===null)return{luckyUID:teammates[Math.floor(Math.random()*teammates.length)]||S.uid};})
+      .then(res=>{
+        const lucky=res.snapshot.val().luckyUID;
+        dbOnce('rooms/'+S.roomCode+'/pairs',pairs=>{
+          const p=pairs||H.pairs||[];
+          const wrongs=shuffle(p.filter(x=>x.term!==q.term)).map(x=>x.term);
+          S.myCardIsCorrect=(S.uid===lucky);
+          if(S.myCardIsCorrect){S.myCardWord=q.term;}
+          else{const idx=teammates.filter(u=>u!==lucky).indexOf(S.uid);S.myCardWord=wrongs[idx%Math.max(1,wrongs.length)]||wrongs[0]||'?';}
+          cb();
+        });
+      }).catch(()=>{S.myCardIsCorrect=true;S.myCardWord=q.term;cb();});
+  });
+}
+
+function renderMates(){
+  dbOnce('rooms/'+S.roomCode+'/players',all=>{
+    if(!all){$('matesList').innerHTML='<div style="font-size:12px;color:var(--textmuted)">(none)</div>';return;}
+    const mates=Object.entries(all).filter(([uid,p])=>p.teamIdx===S.teamIdx&&uid!==S.uid);
+    const list=$('matesList'); list.innerHTML='';
+    if(!mates.length){list.innerHTML='<div style="font-size:12px;color:var(--textmuted)">(no teammates)</div>';return;}
+    const m=tm(S.teamIdx||0);
+    mates.forEach(([uid,p])=>{
+      const row=document.createElement('div'); row.className='mate-row';
+      row.innerHTML=`<span><span class="mate-dot" style="background:${m.accent}"></span>${esc(p.name||'?')}</span><span style="font-size:12px;color:var(--textmuted)">${p.done?'Done':'Playing'}</span>`;
+      list.appendChild(row);
+    });
+  });
+}
+
+let buzzListenerRef=null;
+function listenBuzz(q){
+  if(buzzListenerRef){buzzListenerRef.off();buzzListenerRef=null;}
+  if(!fbReady||!db)return;
+  const ref=db.ref('rooms/'+S.roomCode+'/cardAssign/q'+S.currentQ+'t'+S.teamIdx+'/buzz');
+  buzzListenerRef=ref;
+  ref.on('value',snap=>{
+    const data=snap.val(); if(!data)return;
+    clearInterval(S.timerIv);
+    resolveStudentQ(q,data.isCorrect);
+  });
+}
+function buzzIn(){
+  if(S.buzzed||!S.myCardIsCorrect)return;
+  S.buzzed=true; clearInterval(S.timerIv);
+  const b=$('buzzBtn'); b.className='buzz-btn sent'; b.textContent='Answered!'; b.disabled=true;
+  db.ref('rooms/'+S.roomCode+'/cardAssign/q'+S.currentQ+'t'+S.teamIdx+'/buzz')
+    .set({isCorrect:true,buzzerUID:S.uid,buzzerName:S.name});
+}
+function timeUpStudent(q){
+  if(buzzListenerRef){buzzListenerRef.off();buzzListenerRef=null;}
+  resolveStudentQ(q,false);
+}
+
+// ── WRONG = RESTART FROM Q1 ──
+function resolveStudentQ(q,correct){
+  if(buzzListenerRef){buzzListenerRef.off();buzzListenerRef=null;}
+  clearInterval(S.timerIv);
+  showScreen('s-student-rr');
+  const bg=$('rrBg'); const restartMsg=$('rrRestartMsg');
+  restartMsg.classList.add('hidden');
+
+  if(correct){
+    bg.className='rr-screen correct-bg';
+    $('rrIcon').textContent='✅'; $('rrTitle').textContent='Correct!';
+    $('rrSub').textContent='Great teamwork!';
+    $('rrAnswer').textContent='The answer was "'+q.term+'"';
+    S.score++; S.currentQ++;
+    dbUpdate('rooms/'+S.roomCode+'/players/'+S.uid,{solved:S.currentQ,score:S.score,currentQ:S.currentQ});
+    setTimeout(()=>loadStudentQuestion(),1800);
+  } else {
+    // WRONG: restart from beginning
+    bg.className='rr-screen wrong-bg';
+    $('rrIcon').textContent='❌'; $('rrTitle').textContent='Wrong!';
+    $('rrSub').textContent='The answer was "'+q.term+'"';
+    $('rrAnswer').textContent='';
+    restartMsg.classList.remove('hidden');
+    // reset progress but keep score
+    S.currentQ=0;
+    // Re-shuffle questions
+    S.questions=shuffle([...S.questions]);
+    dbUpdate('rooms/'+S.roomCode+'/players/'+S.uid,{solved:0,currentQ:0});
+    setTimeout(()=>{
+      bg.className='rr-screen restart-bg';
+      $('rrIcon').textContent='🔄'; $('rrTitle').textContent='Starting over…';
+      $('rrSub').textContent='Back to Question 1!';
+      $('rrAnswer').textContent='';
+      restartMsg.classList.add('hidden');
+      setTimeout(()=>loadStudentQuestion(),1200);
+    },2000);
+  }
+}
+
+function studentDone(){
+  clearInterval(S.timerIv);
+  dbUpdate('rooms/'+S.roomCode+'/players/'+S.uid,{done:true,score:S.score});
+  showScreen('s-student-done');
+  $('doneScore').textContent=`Final score: ${S.score} correct`;
+  db.ref('rooms/'+S.roomCode+'/status').on('value',snap=>{if(snap.val()==='results')showStudentResults();});
+}
+
+function showStudentResults(){
+  dbOnce('rooms/'+S.roomCode,room=>{
+    if(!room)return;
+    const scores=room.scores||[], names=room.teamNames||room.teams||[];
+    showScreen('s-student-results');
+    const sorted=scores.map((s,i)=>({s,name:names[i]||'Team '+(i+1),i})).sort((a,b)=>b.s-a.s);
+    const isWinner = S.teamIdx===sorted[0].i;
+    $('sResTrophy').textContent=isWinner?'🏆':'🎉';
+    $('sResWinner').textContent=sorted[0].name+' Wins!';
+    $('sResWinnerSub').textContent=isWinner?getPraise():'Great effort — better luck next time!';
+    const tbl=$('sResFinal'); tbl.innerHTML='';
+    sorted.forEach((item,rank)=>{
+      const row=document.createElement('div'); row.className='final-row'+(rank===0?' first-place':'');
+      row.innerHTML=`<span>${['🥇','🥈','🥉'][rank]||(rank+1)+'.'} ${esc(item.name)}</span><span style="font-size:18px;font-weight:800">${item.s} pts</span>`;
+      tbl.appendChild(row);
+    });
+    setTimeout(()=>spawnConfetti('sConfetti'),300);
+  });
+}
+
+// ═══════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════
+rebuildTeamNames();
+addPair('apple','a round red or green fruit');
+addPair('book','pages bound together to read');
+addPair('cat','a small furry pet that meows');
+addPair('dog','a loyal pet that barks');
+syncPairs();
+spawnParticles('particleContainer',['#AFA9EC','#5DCAA5','#EF9F27','#ED93B1'],20);
+
+// QR auto-fill from URL
+const urlParams=new URLSearchParams(location.search);
+const joinParam=urlParams.get('join');
+if(joinParam){
+  showScreen('s-student-join');
+  $('joinCode').value=joinParam.toUpperCase().slice(0,4);
+  $('joinName').focus();
+  spawnParticles('joinParticles',['rgba(175,169,236,.6)','rgba(93,202,165,.4)','rgba(255,255,255,.3)'],15);
+}
+</script>
+</body>
+</html>
