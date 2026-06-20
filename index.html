@@ -1,0 +1,1086 @@
+/* Import the functions you need from the SDKs you need */
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+/* TODO: Add SDKs for Firebase products that you want to use */
+/* https://firebase.google.com/docs/web/setup#available-libraries */
+
+/* Your web app's Firebase configuration */
+/* For Firebase JS SDK v7.20.0 and later, measurementId is optional */
+const firebaseConfig = {
+  apiKey: "AIzaSyA5wBjorqyIKwyIGkKzMLNrrgefEgMUU8w",
+  authDomain: "interactive-quiz-ad3e8.firebaseapp.com",
+  databaseURL: "https://interactive-quiz-ad3e8-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "interactive-quiz-ad3e8",
+  storageBucket: "interactive-quiz-ad3e8.firebasestorage.app",
+  messagingSenderId: "21251657109",
+  appId: "1:21251657109:web:a40c5b6491cb52e1e07a9c",
+  measurementId: "G-3NCP4F1FV8"
+};
+
+/* Initialize Firebase */
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>VocabLive</title>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --p50:#EEEDFE;--p100:#CECBF6;--p200:#AFA9EC;--p600:#534AB7;--p800:#3C3489;--p900:#26215C;
+  --t50:#E1F5EE;--t200:#5DCAA5;--t600:#0F6E56;--t900:#04342C;
+  --c50:#FAECE7;--c200:#F0997B;--c600:#993C1D;--c900:#4A1B0C;
+  --k50:#FBEAF0;--k200:#ED93B1;--k600:#993556;--k900:#4B1528;
+  --a50:#FAEEDA;--a400:#EF9F27;--a900:#412402;
+  --g50:#EAF3DE;--g600:#3B6D11;--g900:#173404;
+  --r50:#FCEBEB;--r600:#A32D2D;--r900:#501313;
+  --gray50:#F1EFE8;--gray200:#B4B2A9;--gray600:#5F5E5A;
+  --text:#1a1a1a;--textsec:#555;--textmuted:#888;
+  --bg:#fff;--bgsec:#f7f7f5;--border:rgba(0,0,0,0.12);
+  --rad:12px;--radsm:8px;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bgsec);color:var(--text);min-height:100vh}
+.screen{display:none;min-height:100vh}
+.screen.active{display:flex;flex-direction:column}
+
+/* ── shared card/btn ── */
+.card{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--rad);padding:1.25rem;margin-bottom:1rem}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;font-size:14px;font-weight:500;border:0.5px solid rgba(0,0,0,0.2);border-radius:var(--radsm);background:var(--bg);color:var(--text);cursor:pointer;transition:all .15s}
+.btn:hover{background:var(--bgsec)}
+.btn:active{transform:scale(.98)}
+.btn-primary{background:var(--p800);border-color:var(--p800);color:#fff}
+.btn-primary:hover{background:var(--p600);border-color:var(--p600)}
+.btn-danger{background:var(--r600);border-color:var(--r600);color:#fff}
+.btn-danger:hover{background:var(--r900)}
+.btn-sm{padding:5px 12px;font-size:12px}
+label{font-size:12px;color:var(--textmuted);display:block;margin-bottom:4px;margin-top:10px}
+input[type=text],textarea,select{width:100%;padding:8px 12px;font-size:14px;border:0.5px solid rgba(0,0,0,0.2);border-radius:var(--radsm);background:var(--bg);color:var(--text);font-family:inherit}
+textarea{resize:vertical;min-height:140px}
+.errMsg{color:var(--r600);font-size:13px;margin-top:6px}
+.hidden{display:none!important}
+.row{display:flex;gap:10px;align-items:flex-end}
+.row>*{flex:1}
+
+/* ── host setup ── */
+.hwrap{max-width:800px;margin:0 auto;padding:2rem 1.5rem;width:100%}
+.logo{font-size:22px;font-weight:700;color:var(--p800);margin-bottom:.25rem}
+.logo span{color:var(--p600)}
+.tabs{display:flex;gap:4px;margin-bottom:1rem}
+.tab{padding:6px 14px;font-size:13px;border-radius:var(--radsm);border:0.5px solid var(--border);cursor:pointer;background:transparent;color:var(--textsec)}
+.tab.active{background:var(--p50);border-color:var(--p200);color:var(--p800);font-weight:500}
+.pair-row{display:flex;gap:8px;margin-bottom:8px;align-items:center}
+.pair-row input{flex:1}
+.pair-row .del{flex-shrink:0;padding:6px 10px;border:0.5px solid rgba(0,0,0,.15);border-radius:6px;background:var(--bg);cursor:pointer;color:var(--textmuted);font-size:14px}
+.pair-row .del:hover{background:var(--r50);color:var(--r600)}
+.team-name-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-top:12px}
+.team-name-item{padding:8px 12px;border-radius:var(--radsm);border:0.5px solid var(--border)}
+.team-name-item input{background:transparent;border:none;font-weight:600;font-size:14px}
+
+/* ── host lobby ── */
+.lobby-grid{display:grid;grid-template-columns:220px 1fr;gap:1rem;margin-bottom:1rem}
+.qr-box{text-align:center;padding:1rem}
+.room-code{font-size:32px;font-weight:700;letter-spacing:.12em;color:var(--p800);margin:.5rem 0}
+.room-url{font-size:11px;color:var(--textmuted);word-break:break-all}
+.qr-wrap{display:inline-block;padding:12px;background:#fff;border:0.5px solid var(--border);border-radius:var(--rad);margin:.5rem 0}
+.unassigned-pool{min-height:48px;padding:8px;background:var(--gray50);border-radius:var(--radsm);border:0.5px dashed var(--gray200);margin-bottom:8px;display:flex;flex-wrap:wrap;gap:4px;align-content:flex-start}
+.player-chip{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:16px;font-size:12px;border:0.5px solid var(--border);background:var(--bgsec);cursor:grab;user-select:none}
+.player-chip .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.teams-lobby{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.team-col{border-radius:var(--radsm);padding:10px;border:0.5px solid var(--border);min-height:80px}
+.team-col-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.team-col-title{font-size:13px;font-weight:600}
+.team-drop{min-height:40px;display:flex;flex-wrap:wrap;gap:4px;align-content:flex-start}
+
+/* ── host game (progress only) ── */
+.hgame{background:var(--p900);color:#fff;min-height:100vh;flex-direction:column}
+.hgame-inner{max-width:860px;margin:0 auto;padding:2rem 1.5rem;width:100%;flex:1;display:flex;flex-direction:column}
+.hg-topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:2rem}
+.hg-title{font-size:22px;font-weight:700}
+.hg-subtitle{font-size:13px;color:rgba(255,255,255,.5);margin-top:2px}
+.hg-teams{display:flex;flex-direction:column;gap:1rem;flex:1}
+.progress-card{background:rgba(255,255,255,.06);border-radius:var(--rad);padding:1.25rem 1.5rem}
+.pc-header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px}
+.pc-name{font-size:18px;font-weight:600}
+.pc-fraction{font-size:14px;color:rgba(255,255,255,.5)}
+.pc-bar-bg{height:20px;background:rgba(255,255,255,.1);border-radius:10px;overflow:hidden}
+.pc-bar-fill{height:100%;border-radius:10px;transition:width .4s ease}
+.pc-members{margin-top:8px;display:flex;gap:6px;flex-wrap:wrap}
+.pc-member{font-size:12px;padding:2px 8px;border-radius:10px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.6);display:flex;align-items:center;gap:4px}
+.pc-member .mchk{font-size:10px}
+.hg-end-btn{text-align:center;margin-top:1.5rem}
+
+/* ── results host ── */
+.res-screen{background:var(--p900);color:#fff;min-height:100vh}
+.res-inner{max-width:560px;margin:0 auto;padding:2.5rem 1.5rem;text-align:center}
+.trophy{font-size:56px;margin-bottom:.5rem}
+.winner-hl{font-size:26px;font-weight:700;margin-bottom:.5rem}
+.final-table{background:rgba(255,255,255,.08);border-radius:var(--rad);padding:1rem;margin:1.5rem 0;text-align:left}
+.final-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:0.5px solid rgba(255,255,255,.1)}
+.final-row:last-child{border-bottom:none}
+
+/* ── student join ── */
+.s-join{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:2rem}
+.slogo{font-size:20px;font-weight:700;color:var(--p800);margin-bottom:.5rem}
+.slogo span{color:var(--p600)}
+.join-card{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--rad);padding:1.5rem 1.25rem;width:100%;max-width:340px;text-align:left}
+.join-title{font-size:16px;font-weight:600;margin-bottom:1rem}
+
+/* ── student waiting ── */
+.s-wait{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:2rem}
+.team-badge-big{display:inline-block;padding:8px 22px;border-radius:20px;font-size:16px;font-weight:600;margin:.75rem 0}
+.spinner{width:20px;height:20px;border:2px solid rgba(0,0,0,.1);border-top-color:var(--p600);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── student quiz ── */
+.s-quiz{min-height:100vh;display:flex;flex-direction:column;background:var(--bgsec)}
+.sq-header{padding:.875rem 1rem .5rem;background:var(--bg);border-bottom:0.5px solid var(--border)}
+.sq-meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.sq-round{font-size:12px;color:var(--textmuted)}
+.sq-score{font-size:13px;font-weight:600;color:var(--p800)}
+.sq-prog-bg{height:4px;background:var(--bgsec);border-radius:2px;overflow:hidden}
+.sq-prog-fill{height:100%;background:var(--p600);border-radius:2px;transition:width .3s}
+
+.sq-body{flex:1;padding:1rem;display:flex;flex-direction:column;gap:.75rem}
+
+/* definition card shown to all */
+.def-card{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--rad);padding:1.25rem;text-align:center}
+.def-label{font-size:11px;color:var(--textmuted);font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.def-text{font-size:22px;font-weight:600;line-height:1.4;color:var(--text)}
+
+/* my-card: the word this student holds */
+.my-card{border-radius:var(--rad);padding:1rem;text-align:center;border:1.5px solid}
+.my-card-label{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px}
+.my-card-word{font-size:28px;font-weight:700;margin-bottom:4px}
+.my-card-hint{font-size:13px;line-height:1.5}
+
+/* discussion hint */
+.discuss-box{background:var(--a50);border:0.5px solid var(--a400);border-radius:var(--radsm);padding:10px 14px;font-size:13px;color:var(--a900);text-align:center;line-height:1.6}
+
+/* buzz button */
+.buzz-btn{width:100%;padding:16px;font-size:17px;font-weight:700;border:none;border-radius:var(--rad);cursor:pointer;transition:all .15s;letter-spacing:.02em}
+.buzz-btn.ready{background:var(--p800);color:#fff}
+.buzz-btn.ready:hover{background:var(--p600)}
+.buzz-btn.ready:active{transform:scale(.97)}
+.buzz-btn.not-mine{background:var(--gray200);color:var(--gray600);cursor:not-allowed}
+.buzz-btn.sent{background:var(--p200);color:var(--p900);cursor:not-allowed}
+.buzz-btn.correct{background:#3B6D11;color:#fff}
+.buzz-btn.wrong{background:var(--r600);color:#fff}
+
+/* teammate status */
+.mates-list{margin-top:.25rem}
+.mate-row{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:0.5px solid var(--border);font-size:13px}
+.mate-row:last-child{border-bottom:none}
+.mate-dot{width:8px;height:8px;border-radius:50%;margin-right:8px;display:inline-block;flex-shrink:0}
+
+/* round result overlay */
+.round-result{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:2rem}
+.rr-icon{font-size:60px;margin-bottom:.75rem}
+.rr-title{font-size:22px;font-weight:700;margin-bottom:.5rem}
+.rr-sub{font-size:15px;color:var(--textsec)}
+
+@media(max-width:480px){
+  .lobby-grid{grid-template-columns:1fr}
+  .def-text{font-size:19px}
+  .my-card-word{font-size:24px}
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════
+     HOST: SETUP
+══════════════════════════════════ -->
+<div class="screen active" id="s-host-setup">
+<div class="hwrap">
+  <div class="logo">Vocab<span>Live</span> <span style="font-size:12px;font-weight:400;color:var(--textmuted)">先生用ホスト</span></div>
+  <p style="font-size:14px;color:var(--textmuted);margin-bottom:1.75rem">単語セットとチームを設定してルームを作成します</p>
+
+  <div class="card">
+    <h2 style="font-size:16px;font-weight:600;margin-bottom:1rem">単語セット</h2>
+    <div class="tabs">
+      <button class="tab active" onclick="swTab('manual')">手動入力</button>
+      <button class="tab" onclick="swTab('bulk')">一括貼り付け</button>
+      <button class="tab" onclick="swTab('sample')">サンプル</button>
+    </div>
+    <div id="tab-manual">
+      <div style="display:flex;gap:8px;margin-bottom:4px">
+        <span style="flex:1;font-size:11px;color:var(--textmuted);padding:0 12px">単語・フレーズ</span>
+        <span style="flex:1;font-size:11px;color:var(--textmuted);padding:0 12px">意味・定義</span>
+        <span style="width:36px"></span>
+      </div>
+      <div id="pairsBox"></div>
+      <button class="btn btn-sm" style="margin-top:6px" onclick="addPair()">＋ 追加</button>
+    </div>
+    <div id="tab-bulk" class="hidden">
+      <label>「単語 , 意味」形式で1行1ペア</label>
+      <textarea id="bulkTxt" placeholder="apple , りんご&#10;book , 本&#10;cat , 猫"></textarea>
+      <button class="btn btn-primary btn-sm" style="margin-top:8px" onclick="parseBulk()">読み込む</button>
+    </div>
+    <div id="tab-sample" class="hidden">
+      <p style="font-size:13px;color:var(--textsec);margin-bottom:10px">英語→日本語サンプル10語を使います</p>
+      <button class="btn btn-primary btn-sm" onclick="loadSample()">このセットを使う</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 style="font-size:16px;font-weight:600;margin-bottom:.75rem">ゲーム設定</h2>
+    <div class="row">
+      <div>
+        <label>チーム数</label>
+        <select id="teamCount" onchange="rebuildTeamNames()">
+          <option value="2">2チーム</option>
+          <option value="3" selected>3チーム</option>
+          <option value="4">4チーム</option>
+        </select>
+      </div>
+      <div>
+        <label>制限時間</label>
+        <select id="timeLimit">
+          <option value="20">20秒</option>
+          <option value="30" selected>30秒</option>
+          <option value="45">45秒</option>
+          <option value="60">60秒</option>
+        </select>
+      </div>
+    </div>
+    <div class="team-name-grid" id="teamNameGrid"></div>
+  </div>
+
+  <button class="btn btn-primary" style="font-size:15px;padding:11px 28px" onclick="createRoom()">ルームを作成 →</button>
+  <div class="errMsg" id="setupErr"></div>
+</div>
+</div>
+
+<!-- ══════════════════════════════════
+     HOST: LOBBY
+══════════════════════════════════ -->
+<div class="screen" id="s-host-lobby">
+<div class="hwrap">
+  <div class="logo" style="margin-bottom:1.5rem">VocabLive <span style="font-size:13px;font-weight:400;color:var(--textmuted)">ロビー</span></div>
+
+  <div class="lobby-grid">
+    <div class="card qr-box">
+      <div style="font-size:12px;font-weight:600;color:var(--textsec)">QRを生徒に見せる</div>
+      <div class="qr-wrap"><div id="qrcode"></div></div>
+      <div class="room-code" id="dispCode">----</div>
+      <div class="room-url" id="dispUrl"></div>
+    </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
+        <h2 style="font-size:15px;font-weight:600;margin:0">参加者 <span id="pCount" style="color:var(--p600)">0</span>人</h2>
+        <button class="btn btn-sm" onclick="autoAssign()">自動チーム分け</button>
+      </div>
+      <div style="font-size:12px;color:var(--textmuted);margin-bottom:6px">未割り当て（ドラッグでチームへ）</div>
+      <div class="unassigned-pool" id="unassignedPool" ondragover="event.preventDefault()" ondrop="dropUnassign(event)">
+        <span style="font-size:12px;color:var(--textmuted)">まだ誰も参加していません</span>
+      </div>
+      <div class="teams-lobby" id="teamsLobby"></div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:10px;align-items:center">
+    <button class="btn btn-primary" style="font-size:15px;padding:11px 28px" onclick="startGame()">ゲームスタート →</button>
+    <span class="errMsg" id="lobbyErr"></span>
+  </div>
+</div>
+</div>
+
+<!-- ══════════════════════════════════
+     HOST: GAME (progress view)
+══════════════════════════════════ -->
+<div class="screen hgame" id="s-host-game">
+<div class="hgame-inner">
+  <div class="hg-topbar">
+    <div>
+      <div class="hg-title">進行中</div>
+      <div class="hg-subtitle" id="hgMeta">各チームの解答状況</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <div id="hgFinishedCount" style="font-size:14px;color:rgba(255,255,255,.5)"></div>
+      <button class="btn btn-danger btn-sm" onclick="forceEnd()">強制終了</button>
+    </div>
+  </div>
+
+  <div class="hg-teams" id="hgTeams"></div>
+
+  <div style="text-align:center;margin-top:1.5rem;font-size:13px;color:rgba(255,255,255,.3)">
+    全員が全問解き終わると自動で結果画面に移ります
+  </div>
+</div>
+</div>
+
+<!-- ══════════════════════════════════
+     HOST: RESULTS
+══════════════════════════════════ -->
+<div class="screen res-screen" id="s-host-results">
+<div class="res-inner">
+  <div class="trophy">🏆</div>
+  <div class="winner-hl" id="resWinner"></div>
+  <div class="final-table" id="resFinal"></div>
+  <div style="display:flex;gap:10px;justify-content:center;margin-top:1.5rem">
+    <button class="btn btn-primary" onclick="restartGame()">もう一度</button>
+    <button class="btn" style="color:rgba(255,255,255,.7);border-color:rgba(255,255,255,.2);background:transparent" onclick="location.reload()">設定に戻る</button>
+  </div>
+</div>
+</div>
+
+<!-- ══════════════════════════════════
+     STUDENT: JOIN
+══════════════════════════════════ -->
+<div class="screen" id="s-student-join">
+<div class="s-join">
+  <div class="slogo">Vocab<span>Live</span></div>
+  <div style="font-size:13px;color:var(--textmuted);margin-bottom:1.5rem">チーム戦ボキャブラリークイズ</div>
+  <div class="join-card">
+    <div class="join-title">参加する</div>
+    <label>ルームコード</label>
+    <input type="text" id="joinCode" placeholder="例: AB12" maxlength="4"
+      style="text-transform:uppercase;font-size:22px;letter-spacing:.12em;font-weight:700;text-align:center"
+      oninput="this.value=this.value.toUpperCase()">
+    <label>あなたの名前</label>
+    <input type="text" id="joinName" placeholder="名前を入力" maxlength="16">
+    <div class="errMsg" id="joinErr"></div>
+    <button class="btn btn-primary" style="width:100%;margin-top:14px;justify-content:center;font-size:15px;padding:11px" onclick="joinRoom()">参加する</button>
+  </div>
+  <div style="font-size:12px;color:var(--textmuted);margin-top:1rem">QRコードを読み取ると自動でコードが入力されます</div>
+</div>
+</div>
+
+<!-- ══════════════════════════════════
+     STUDENT: WAITING
+══════════════════════════════════ -->
+<div class="screen" id="s-student-waiting">
+<div class="s-wait">
+  <div class="slogo">Vocab<span>Live</span></div>
+  <div style="margin-top:1.5rem">
+    <div style="font-size:14px;color:var(--textsec)">参加完了！先生がゲームを始めるまで待ってください</div>
+    <div class="team-badge-big" id="myTeamBadge" style="margin-top:1rem">チーム未割り当て</div>
+    <div id="waitMates" style="font-size:13px;color:var(--textmuted);margin-top:.5rem"></div>
+  </div>
+  <div style="margin-top:2rem;display:flex;gap:8px;align-items:center;color:var(--textmuted);font-size:13px">
+    <div class="spinner"></div>待機中...
+  </div>
+</div>
+</div>
+
+<!-- ══════════════════════════════════
+     STUDENT: QUIZ
+══════════════════════════════════ -->
+<div class="screen" id="s-student-quiz">
+<div class="s-quiz">
+  <div class="sq-header">
+    <div class="sq-meta">
+      <span class="sq-round" id="sqRound">問題 1/10</span>
+      <span class="sq-score" id="sqScore">0 正解</span>
+    </div>
+    <div class="sq-prog-bg"><div class="sq-prog-fill" id="sqProg" style="width:0%"></div></div>
+  </div>
+
+  <div class="sq-body">
+    <!-- Definition shown to all -->
+    <div class="def-card">
+      <div class="def-label">この意味の単語を答えなさい</div>
+      <div class="def-text" id="sqDef">―</div>
+    </div>
+
+    <!-- Timer -->
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:0 2px">
+      <span style="font-size:13px;color:var(--textmuted)">残り時間</span>
+      <span id="sqTimer" style="font-size:20px;font-weight:700;color:var(--p800)">30</span>
+    </div>
+    <div style="height:6px;background:var(--bgsec);border-radius:3px;overflow:hidden">
+      <div id="sqTimerBar" style="height:100%;background:var(--p600);border-radius:3px;transition:width .1s linear;width:100%"></div>
+    </div>
+
+    <!-- My word card -->
+    <div class="my-card" id="myCard">
+      <div class="my-card-label" id="myCardLabel">あなたのカード</div>
+      <div class="my-card-word" id="myCardWord">―</div>
+      <div class="my-card-hint" id="myCardHint"></div>
+    </div>
+
+    <!-- Discussion prompt -->
+    <div class="discuss-box" id="discussBox">💬 チームで相談して、正解の単語を持つ人が「これが正解！」を押してください</div>
+
+    <!-- Buzz button -->
+    <button class="buzz-btn not-mine" id="buzzBtn" onclick="buzzIn()">これが正解！　答える</button>
+
+    <!-- Teammate status -->
+    <div id="matesWrap" style="background:var(--bg);border-radius:var(--rad);border:0.5px solid var(--border);padding:.75rem 1rem">
+      <div style="font-size:12px;color:var(--textmuted);margin-bottom:6px">チームメイトの状況</div>
+      <div class="mates-list" id="matesList"></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ══════════════════════════════════
+     STUDENT: ROUND RESULT
+══════════════════════════════════ -->
+<div class="screen" id="s-student-rr">
+<div class="round-result">
+  <div class="rr-icon" id="rrIcon">✅</div>
+  <div class="rr-title" id="rrTitle">正解！</div>
+  <div class="rr-sub" id="rrSub">次の問題へ...</div>
+</div>
+</div>
+
+<!-- ══════════════════════════════════
+     STUDENT: FINISHED (waiting for others)
+══════════════════════════════════ -->
+<div class="screen" id="s-student-done">
+<div class="s-wait">
+  <div style="font-size:48px;margin-bottom:.75rem">🎉</div>
+  <div style="font-size:20px;font-weight:700;margin-bottom:.5rem">全問終了！</div>
+  <div style="font-size:14px;color:var(--textsec);margin-bottom:2rem" id="doneScore"></div>
+  <div style="display:flex;gap:8px;align-items:center;color:var(--textmuted);font-size:13px">
+    <div class="spinner"></div>他のチームの結果を待っています...
+  </div>
+</div>
+</div>
+
+<!-- ══════════════════════════════════
+     STUDENT: RESULTS
+══════════════════════════════════ -->
+<div class="screen res-screen" id="s-student-results">
+<div class="res-inner">
+  <div class="trophy">🎉</div>
+  <div class="winner-hl" id="sResWinner"></div>
+  <div class="final-table" id="sResFinal"></div>
+  <div style="font-size:13px;color:rgba(255,255,255,.4);margin-top:1rem">先生の画面で詳細を確認しよう</div>
+</div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════
+// FIREBASE
+// ── 実際に使う場合は firebaseConfig を書き換えてください ──
+// ══════════════════════════════════════════════════
+const firebaseConfig = {
+  apiKey: "AIzaSyDemo_VocabLive_Replace_With_Your_Key",
+  authDomain: "vocablive-demo.firebaseapp.com",
+  databaseURL: "https://vocablive-demo-default-rtdb.firebaseio.com",
+  projectId: "vocablive-demo",
+};
+
+let db, fbReady = false;
+try {
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.database();
+  fbReady = true;
+} catch(e) { console.warn('Firebase not configured — demo mode'); }
+
+// ══════════════════════════════════════════════════
+// CONSTANTS
+// ══════════════════════════════════════════════════
+const TEAM_META = [
+  {bg:'#EEEDFE',border:'#AFA9EC',text:'#26215C',accent:'#534AB7',barColor:'#7F77DD'},
+  {bg:'#E1F5EE',border:'#5DCAA5',text:'#04342C',accent:'#0F6E56',barColor:'#1D9E75'},
+  {bg:'#FAECE7',border:'#F0997B',text:'#4A1B0C',accent:'#993C1D',barColor:'#D85A30'},
+  {bg:'#FBEAF0',border:'#ED93B1',text:'#4B1528',accent:'#993556',barColor:'#D4537E'},
+];
+
+// ══════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════
+let H = {   // host state
+  roomCode: null,
+  pairs: [],       // [{term, def}]
+  teams: [],       // [{name, players:[uid]}]
+  players: {},     // uid -> {name, teamIdx, solved, score}
+  timeLimit: 30,
+  totalQ: 0,
+  scores: [],      // [teamScore, ...]
+  dbRef: null,
+};
+
+let S = {   // student state
+  roomCode: null, uid: null, name: null,
+  teamIdx: null,
+  questions: [],   // shuffled per student
+  currentQ: 0,
+  score: 0,
+  myCardWord: null, myCardIsCorrect: false,
+  buzzed: false,
+  timerIv: null,
+};
+
+// ══════════════════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════════════════
+const $ = id => document.getElementById(id);
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  $(id).classList.add('active');
+}
+function shuffle(a){ const b=[...a]; for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];} return b; }
+function genCode(){ const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; return Array.from({length:4},()=>c[Math.floor(Math.random()*c.length)]).join(''); }
+function genUID(){ return Math.random().toString(36).slice(2,10); }
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function tm(i){ return TEAM_META[i % TEAM_META.length]; }
+
+// ══════════════════════════════════════════════════
+// HOST SETUP
+// ══════════════════════════════════════════════════
+let activePairsTab = 'manual';
+let manualPairs = [];
+let teamNames = ['チーム1','チーム2','チーム3','チーム4'];
+
+function swTab(t){
+  activePairsTab = t;
+  ['manual','bulk','sample'].forEach(x => $('tab-'+x).classList.toggle('hidden', x!==t));
+  document.querySelectorAll('.tabs .tab').forEach((el,i)=>el.classList.toggle('active',['manual','bulk','sample'][i]===t));
+}
+function addPair(w='',m=''){
+  const r=document.createElement('div'); r.className='pair-row';
+  r.innerHTML=`<input type="text" placeholder="単語" value="${esc(w)}" class="wi" oninput="syncPairs()"><input type="text" placeholder="意味" value="${esc(m)}" class="mi" oninput="syncPairs()"><button class="del" onclick="this.parentElement.remove();syncPairs()">✕</button>`;
+  $('pairsBox').appendChild(r);
+}
+function syncPairs(){
+  const ws=document.querySelectorAll('.wi'), ms=document.querySelectorAll('.mi');
+  manualPairs=[]; ws.forEach((w,i)=>{ if(w.value.trim()&&ms[i].value.trim()) manualPairs.push({term:w.value.trim(),def:ms[i].value.trim()}); });
+}
+function parseBulk(){
+  const lines=$('bulkTxt').value.split('\n');
+  const p=lines.map(l=>{const x=l.split(',');return x.length>=2?{term:x[0].trim(),def:x.slice(1).join(',').trim()}:null;}).filter(Boolean);
+  if(!p.length){alert('「単語 , 意味」形式で入力してください');return;}
+  $('pairsBox').innerHTML=''; p.forEach(x=>addPair(x.term,x.def)); swTab('manual'); syncPairs();
+}
+function loadSample(){
+  const s=[{term:'apple',def:'りんご'},{term:'book',def:'本'},{term:'cat',def:'猫'},{term:'dog',def:'犬'},{term:'elephant',def:'象'},{term:'flower',def:'花'},{term:'guitar',def:'ギター'},{term:'house',def:'家'},{term:'island',def:'島'},{term:'jungle',def:'ジャングル'}];
+  $('pairsBox').innerHTML=''; s.forEach(x=>addPair(x.term,x.def)); swTab('manual'); syncPairs();
+}
+function rebuildTeamNames(){
+  const n=parseInt($('teamCount').value);
+  const inputs=document.querySelectorAll('#teamNameGrid input');
+  inputs.forEach((el,i)=>{ teamNames[i]=el.value||teamNames[i]; });
+  const grid=$('teamNameGrid'); grid.innerHTML='';
+  for(let i=0;i<n;i++){
+    const m=tm(i); const d=document.createElement('div');
+    d.className='team-name-item'; d.style.background=m.bg; d.style.borderColor=m.border;
+    d.innerHTML=`<input type="text" value="${esc(teamNames[i]||m.name)}" style="color:${m.text};width:100%" placeholder="チーム名" oninput="teamNames[${i}]=this.value">`;
+    grid.appendChild(d);
+  }
+}
+
+// ══════════════════════════════════════════════════
+// HOST: CREATE ROOM
+// ══════════════════════════════════════════════════
+function createRoom(){
+  syncPairs(); $('setupErr').textContent='';
+  if(manualPairs.length<4){$('setupErr').textContent='最低4つの単語ペアが必要です';return;}
+  const inputs=document.querySelectorAll('#teamNameGrid input');
+  inputs.forEach((el,i)=>{teamNames[i]=el.value||TEAM_META[i].name;});
+  const tc=parseInt($('teamCount').value);
+  H.pairs=manualPairs;
+  H.roomCode=genCode();
+  H.teams=Array.from({length:tc},(_,i)=>({name:teamNames[i]||TEAM_META[i].name,players:[]}));
+  H.scores=new Array(tc).fill(0);
+  H.players={};
+  H.timeLimit=parseInt($('timeLimit').value)||30;
+  H.totalQ=manualPairs.length;
+
+  if(fbReady){
+    H.dbRef=db.ref('rooms/'+H.roomCode);
+    H.dbRef.set({
+      status:'lobby', timeLimit:H.timeLimit, totalQ:H.totalQ,
+      teams:H.teams.map(t=>t.name), pairs:H.pairs,
+      players:{}, scores:H.scores,
+    }).catch(()=>demoMode());
+    H.dbRef.child('players').on('value',snap=>{
+      H.players=snap.val()||{};
+      Object.entries(H.players).forEach(([uid,p])=>{
+        if(p.teamIdx!=null){
+          const t=H.teams[p.teamIdx];
+          if(t&&!t.players.includes(uid)) t.players.push(uid);
+        }
+      });
+      renderLobby();
+    });
+  } else { demoMode(); }
+
+  showScreen('s-host-lobby');
+  buildQR();
+  buildTeamCols();
+}
+
+function demoMode(){
+  setTimeout(()=>{
+    ['山田 太郎','鈴木 花子','佐藤 健','田中 美咲','伊藤 龍','渡辺 葵'].forEach((n,i)=>{
+      const uid='demo'+i;
+      H.players[uid]={name:n,teamIdx:null,solved:0,score:0};
+    });
+    renderLobby();
+  },400);
+}
+
+function buildQR(){
+  $('dispCode').textContent=H.roomCode;
+  const url=location.href.split('?')[0]+'?join='+H.roomCode;
+  $('dispUrl').textContent=url;
+  $('qrcode').innerHTML='';
+  try{ new QRCode($('qrcode'),{text:url,width:160,height:160,colorDark:'#26215C',colorLight:'#fff'}); }catch(e){}
+}
+
+// ── drag & drop ──
+let draggingUID=null;
+function buildTeamCols(){
+  const grid=$('teamsLobby'); grid.innerHTML='';
+  H.teams.forEach((team,i)=>{
+    const m=tm(i); const col=document.createElement('div'); col.className='team-col';
+    col.style.background=m.bg; col.style.borderColor=m.border;
+    col.dataset.ti=i;
+    col.innerHTML=`<div class="team-col-head"><span class="team-col-title" style="color:${m.text}">${esc(team.name)}</span><span style="font-size:11px;color:${m.text};opacity:.6" id="tc${i}">0人</span></div><div class="team-drop" id="td${i}" ondragover="event.preventDefault()" ondrop="dropTeam(event,${i})" ondragenter="this.style.opacity='.5'" ondragleave="this.style.opacity='1'"></div>`;
+    grid.appendChild(col);
+  });
+}
+function renderLobby(){
+  const pool=$('unassignedPool'); pool.innerHTML='';
+  let un=0;
+  Object.entries(H.players).forEach(([uid,p])=>{
+    if(p.teamIdx==null){ un++; pool.appendChild(chip(uid,p.name,null)); }
+  });
+  if(!un) pool.innerHTML='<span style="font-size:12px;color:var(--textmuted)">全員割り当て済み ✓</span>';
+  $('pCount').textContent=Object.keys(H.players).length;
+  H.teams.forEach((t,i)=>{
+    const zone=$('td'+i); if(!zone)return; zone.innerHTML='';
+    t.players.forEach(uid=>{ const p=H.players[uid]; if(p) zone.appendChild(chip(uid,p.name,i)); });
+    const cnt=$('tc'+i); if(cnt) cnt.textContent=t.players.length+'人';
+  });
+}
+function chip(uid,name,ti){
+  const c=document.createElement('div'); c.className='player-chip'; c.draggable=true; c.dataset.uid=uid;
+  const m=ti!=null?tm(ti):null;
+  if(m){c.style.background=m.bg;c.style.borderColor=m.border;}
+  c.innerHTML=`<span class="dot" style="background:${m?m.accent:'#ccc'}"></span><span>${esc(name)}</span>`;
+  c.addEventListener('dragstart',()=>draggingUID=uid);
+  c.addEventListener('dblclick',()=>removeFromTeam(uid));
+  return c;
+}
+function dropTeam(e,ti){
+  e.preventDefault(); const uid=draggingUID; if(!uid||!H.players[uid])return;
+  H.teams.forEach(t=>t.players=t.players.filter(u=>u!==uid));
+  H.teams[ti].players.push(uid); H.players[uid].teamIdx=ti;
+  if(fbReady) db.ref('rooms/'+H.roomCode+'/players/'+uid+'/teamIdx').set(ti);
+  draggingUID=null; renderLobby();
+}
+function dropUnassign(e){
+  e.preventDefault(); const uid=draggingUID; if(!uid||!H.players[uid])return;
+  H.teams.forEach(t=>t.players=t.players.filter(u=>u!==uid));
+  H.players[uid].teamIdx=null;
+  if(fbReady) db.ref('rooms/'+H.roomCode+'/players/'+uid+'/teamIdx').set(null);
+  draggingUID=null; renderLobby();
+}
+function removeFromTeam(uid){
+  H.teams.forEach(t=>t.players=t.players.filter(u=>u!==uid));
+  if(H.players[uid]) H.players[uid].teamIdx=null;
+  if(fbReady) db.ref('rooms/'+H.roomCode+'/players/'+uid+'/teamIdx').set(null);
+  renderLobby();
+}
+function autoAssign(){
+  const uids=shuffle(Object.keys(H.players));
+  H.teams.forEach(t=>t.players=[]);
+  uids.forEach((uid,i)=>{ const ti=i%H.teams.length; H.teams[ti].players.push(uid); H.players[uid].teamIdx=ti; if(fbReady) db.ref('rooms/'+H.roomCode+'/players/'+uid+'/teamIdx').set(ti); });
+  renderLobby();
+}
+
+// ══════════════════════════════════════════════════
+// HOST: START GAME
+// ══════════════════════════════════════════════════
+function startGame(){
+  $('lobbyErr').textContent='';
+  const total=Object.keys(H.players).length;
+  if(total===0){ demoMode(); setTimeout(()=>{autoAssign();_startGame();},700); return; }
+  const unassigned=Object.values(H.players).some(p=>p.teamIdx==null);
+  if(unassigned){$('lobbyErr').textContent='全員をチームに割り当ててください';return;}
+  _startGame();
+}
+function _startGame(){
+  H.scores=new Array(H.teams.length).fill(0);
+  // Push game-start signal with per-player question lists
+  if(fbReady){
+    // Each player gets their own shuffled question list & card assignments
+    const playerUpdates={};
+    Object.entries(H.players).forEach(([uid,p])=>{
+      const qs=shuffle([...H.pairs]);
+      playerUpdates[uid]={ ...p, questions: qs, currentQ:0, score:0, solved:0, done:false };
+    });
+    H.dbRef.update({ status:'game', players: playerUpdates, scores: H.scores })
+      .then(()=>{ showScreen('s-host-game'); listenHostProgress(); });
+  } else {
+    showScreen('s-host-game');
+    simulateHostProgress();
+  }
+}
+
+// ══════════════════════════════════════════════════
+// HOST: PROGRESS VIEW
+// ══════════════════════════════════════════════════
+function listenHostProgress(){
+  H.dbRef.child('players').on('value', snap=>{
+    H.players=snap.val()||{};
+    renderHostProgress();
+    checkAllDone();
+  });
+  H.dbRef.child('scores').on('value', snap=>{
+    H.scores=snap.val()||H.scores;
+    renderHostProgress();
+  });
+}
+
+function renderHostProgress(){
+  const container=$('hgTeams'); container.innerHTML='';
+  const total=H.totalQ;
+  H.teams.forEach((team,ti)=>{
+    const m=tm(ti);
+    const members=team.players.map(uid=>H.players[uid]).filter(Boolean);
+    const teamSolved=members.length ? Math.round(members.reduce((s,p)=>s+(p.solved||0),0)/members.length) : 0;
+    const allDone=members.length>0 && members.every(p=>p.done);
+    const card=document.createElement('div'); card.className='progress-card';
+    if(allDone) card.style.borderLeft='3px solid '+m.barColor;
+    const pct=total>0?Math.round(teamSolved/total*100):0;
+    card.innerHTML=`
+      <div class="pc-header">
+        <span class="pc-name" style="color:${m.barColor}">${esc(team.name)}</span>
+        <span class="pc-fraction" style="color:rgba(255,255,255,.5)">${allDone?'✓ 完了':teamSolved+' / '+total+' 問'}</span>
+      </div>
+      <div class="pc-bar-bg"><div class="pc-bar-fill" style="width:${pct}%;background:${m.barColor}"></div></div>
+      <div class="pc-members">${members.map(p=>`<span class="pc-member"><span class="mchk">${p.done?'✓':'·'}</span>${esc(p.name||'?')}</span>`).join('')}</div>
+    `;
+    container.appendChild(card);
+  });
+  // Finished player count
+  const allP=Object.values(H.players);
+  const doneCnt=allP.filter(p=>p.done).length;
+  $('hgFinishedCount').textContent=`${doneCnt} / ${allP.length} 人完了`;
+}
+
+function checkAllDone(){
+  const all=Object.values(H.players);
+  if(all.length>0 && all.every(p=>p.done)) showHostResults();
+}
+
+function forceEnd(){
+  if(!confirm('強制終了しますか？')) return;
+  if(fbReady) H.dbRef.update({status:'results'});
+  showHostResults();
+}
+
+function showHostResults(){
+  if(fbReady){ H.dbRef.child('players').off(); H.dbRef.child('scores').off(); }
+  // Tally scores per team
+  H.teams.forEach((team,ti)=>{
+    H.scores[ti]=team.players.reduce((s,uid)=>s+(H.players[uid]&&H.players[uid].score||0),0);
+  });
+  if(fbReady) H.dbRef.update({status:'results',scores:H.scores,teamNames:H.teams.map(t=>t.name)});
+  const sorted=H.scores.map((s,i)=>({s,i})).sort((a,b)=>b.s-a.s);
+  const wi=sorted[0].i;
+  $('resWinner').textContent=`🎉 ${H.teams[wi].name} の優勝！`;
+  const tbl=$('resFinal'); tbl.innerHTML='';
+  sorted.forEach((item,rank)=>{
+    const m=tm(item.i); const row=document.createElement('div'); row.className='final-row';
+    row.innerHTML=`<span>${['🥇','🥈','🥉'][rank]||rank+1+'.'}  <span style="font-weight:600;color:rgba(255,255,255,.9)">${esc(H.teams[item.i].name)}</span></span><span style="font-size:20px;font-weight:700">${item.s} pt</span>`;
+    tbl.appendChild(row);
+  });
+  showScreen('s-host-results');
+}
+
+function restartGame(){
+  H.scores=new Array(H.teams.length).fill(0);
+  if(fbReady){
+    const playerUpdates={};
+    Object.entries(H.players).forEach(([uid,p])=>{
+      const qs=shuffle([...H.pairs]);
+      playerUpdates[uid]={...p,questions:qs,currentQ:0,score:0,solved:0,done:false};
+    });
+    H.dbRef.update({status:'game',players:playerUpdates,scores:H.scores}).then(()=>{
+      showScreen('s-host-game'); listenHostProgress();
+    });
+  }
+}
+
+// Demo simulation
+function simulateHostProgress(){
+  let t=0;
+  const uids=Object.keys(H.players);
+  const iv=setInterval(()=>{
+    t++;
+    uids.forEach(uid=>{
+      const p=H.players[uid]; if(!p||p.done)return;
+      if(Math.random()<.15){ p.solved=(p.solved||0)+1; if(p.solved>=H.totalQ){p.done=true;p.score=p.solved;} }
+    });
+    renderHostProgress();
+    if(Object.values(H.players).every(p=>p.done)){clearInterval(iv);setTimeout(showHostResults,1000);}
+    if(t>200) clearInterval(iv);
+  },400);
+}
+
+// ══════════════════════════════════════════════════
+// STUDENT: JOIN
+// ══════════════════════════════════════════════════
+function joinRoom(){
+  const code=$('joinCode').value.trim().toUpperCase();
+  const name=$('joinName').value.trim();
+  $('joinErr').textContent='';
+  if(code.length!==4){$('joinErr').textContent='ルームコードは4文字です';return;}
+  if(!name){$('joinErr').textContent='名前を入力してください';return;}
+  S.roomCode=code; S.name=name; S.uid=genUID();
+  if(!fbReady){$('joinErr').textContent='Firebase未設定 — デモモード（先生画面のみ動作します）';return;}
+  db.ref('rooms/'+code).once('value').then(snap=>{
+    if(!snap.exists()){$('joinErr').textContent='ルームが見つかりません';return;}
+    db.ref('rooms/'+code+'/players/'+S.uid).set({name,teamIdx:null,solved:0,score:0,done:false,currentQ:0});
+    showScreen('s-student-waiting');
+    listenStudent();
+  }).catch(()=>$('joinErr').textContent='接続エラー。先生に確認してください');
+}
+
+function listenStudent(){
+  const ref=db.ref('rooms/'+S.roomCode);
+  ref.child('players/'+S.uid+'/teamIdx').on('value',snap=>{
+    const ti=snap.val();
+    if(ti!=null){
+      S.teamIdx=ti; const m=tm(ti);
+      const b=$('myTeamBadge');
+      b.textContent=H.teams&&H.teams[ti]?H.teams[ti].name:`チーム${ti+1}`;
+      b.style.background=m.bg; b.style.color=m.text; b.style.border=`0.5px solid ${m.border}`;
+    }
+  });
+  // Wait for team name
+  ref.child('teams').once('value',snap=>{ if(snap.val()&&S.teamIdx!=null) $('myTeamBadge').textContent=snap.val()[S.teamIdx]||$('myTeamBadge').textContent; });
+  ref.child('status').on('value',snap=>{
+    const st=snap.val();
+    if(st==='game') startStudentGame();
+    if(st==='results') showStudentResults();
+  });
+}
+
+// ══════════════════════════════════════════════════
+// STUDENT: GAME
+// Each student gets their own question sequence from Firebase.
+// Per question, one teammate has the correct card; others have wrong cards.
+// ══════════════════════════════════════════════════
+function startStudentGame(){
+  // Load my question list from Firebase
+  db.ref('rooms/'+S.roomCode+'/players/'+S.uid+'/questions').once('value',snap=>{
+    S.questions=snap.val()||[];
+    S.currentQ=0; S.score=0;
+    if(S.questions.length===0){showScreen('s-student-done');return;}
+    loadStudentQuestion();
+  });
+}
+
+function loadStudentQuestion(){
+  if(S.currentQ>=S.questions.length){ studentDone(); return; }
+  const q=S.questions[S.currentQ];
+  const total=S.questions.length;
+  const tl=H.timeLimit||30;
+
+  // Assign cards for this question among teammates
+  assignMyCard(q, ()=>{
+    showScreen('s-student-quiz');
+    $('sqRound').textContent=`問題 ${S.currentQ+1} / ${total}`;
+    $('sqScore').textContent=`${S.score} 正解`;
+    $('sqProg').style.width=Math.round(S.currentQ/total*100)+'%';
+    $('sqDef').textContent=q.def;
+
+    // My card
+    const myCard=$('myCard');
+    const m=tm(S.teamIdx||0);
+    if(S.myCardIsCorrect){
+      myCard.style.background=m.bg; myCard.style.borderColor=m.accent;
+      $('myCardLabel').textContent='あなたのカード（正解）'; $('myCardLabel').style.color=m.accent;
+      $('myCardWord').textContent=S.myCardWord; $('myCardWord').style.color=m.text;
+      $('myCardHint').textContent='チームメイトに教えて、あなたが「答える」を押してください！';
+      $('myCardHint').style.color=m.accent;
+      const btn=$('buzzBtn'); btn.className='buzz-btn ready'; btn.disabled=false;
+    } else {
+      myCard.style.background='var(--bgsec)'; myCard.style.borderColor='var(--border)';
+      $('myCardLabel').textContent='あなたのカード（不正解）'; $('myCardLabel').style.color='var(--textmuted)';
+      $('myCardWord').textContent=S.myCardWord; $('myCardWord').style.color='var(--text)';
+      $('myCardHint').textContent='正解の単語を持つチームメイトを探して相談しましょう';
+      $('myCardHint').style.color='var(--textmuted)';
+      const btn=$('buzzBtn'); btn.className='buzz-btn not-mine'; btn.disabled=true;
+    }
+    S.buzzed=false;
+
+    // Teammate status
+    renderMates();
+
+    // Timer
+    clearInterval(S.timerIv);
+    let t=tl;
+    $('sqTimer').textContent=t; $('sqTimerBar').style.width='100%';
+    $('sqTimer').style.color='var(--p800)'; $('sqTimerBar').style.background='var(--p600)';
+    S.timerIv=setInterval(()=>{
+      t--; $('sqTimer').textContent=t;
+      $('sqTimerBar').style.width=Math.max(0,t/tl*100)+'%';
+      if(t<=5){ $('sqTimer').style.color='var(--r600)'; $('sqTimerBar').style.background='var(--r600)'; }
+      if(t<=0){ clearInterval(S.timerIv); autoNextQuestion(q); }
+    },1000);
+
+    // Listen for buzz from any teammate
+    listenBuzz(q);
+  });
+}
+
+function assignMyCard(q, cb){
+  // Get teammates for this question
+  db.ref('rooms/'+S.roomCode+'/players').once('value',snap=>{
+    const all=snap.val()||{};
+    const teammates=Object.entries(all).filter(([uid,p])=>p.teamIdx===S.teamIdx).map(([uid])=>uid);
+    // Check if card already assigned (avoid race condition: first one to load assigns)
+    const cardKey='rooms/'+S.roomCode+'/cardAssign/'+S.currentQ+'/team'+S.teamIdx;
+    db.ref(cardKey).transaction(current=>{
+      if(current===null){
+        // Assign: pick lucky uid
+        const lucky=teammates[Math.floor(Math.random()*teammates.length)];
+        return {luckyUID: lucky};
+      }
+      return; // already set
+    }).then(res=>{
+      const luckyUID=res.snapshot.val().luckyUID;
+      const wrongTerms=shuffle(H.pairs||[]).filter(p=>p.term!==q.term).map(p=>p.term);
+      // Also retrieve pairs from firebase if not loaded
+      db.ref('rooms/'+S.roomCode+'/pairs').once('value',psnap=>{
+        const pairs=psnap.val()||H.pairs||[];
+        const wrongs=shuffle(pairs.filter(p=>p.term!==q.term)).map(p=>p.term);
+        S.myCardIsCorrect=(S.uid===luckyUID);
+        if(S.myCardIsCorrect){
+          S.myCardWord=q.term;
+        } else {
+          // Assign a unique wrong word per player
+          const myIdx=teammates.filter(u=>u!==luckyUID).indexOf(S.uid);
+          S.myCardWord=wrongs[myIdx%wrongs.length]||wrongs[0]||'?';
+        }
+        cb();
+      });
+    }).catch(()=>{ S.myCardIsCorrect=false; S.myCardWord=q.term; cb(); });
+  });
+}
+
+function renderMates(){
+  db.ref('rooms/'+S.roomCode+'/players').once('value',snap=>{
+    const all=snap.val()||{};
+    const mates=Object.entries(all).filter(([uid,p])=>p.teamIdx===S.teamIdx&&uid!==S.uid);
+    const list=$('matesList'); list.innerHTML='';
+    if(!mates.length){ list.innerHTML='<div style="font-size:12px;color:var(--textmuted)">（チームメイトなし）</div>'; return; }
+    mates.forEach(([uid,p])=>{
+      const row=document.createElement('div'); row.className='mate-row';
+      const m=tm(S.teamIdx||0);
+      row.innerHTML=`<span><span class="mate-dot" style="background:${m.accent}"></span>${esc(p.name||'?')}</span><span style="font-size:12px;color:var(--textmuted)">${p.done?'完了':'解答中'}</span>`;
+      list.appendChild(row);
+    });
+  });
+}
+
+let buzzListener=null;
+function listenBuzz(q){
+  if(buzzListener) buzzListener.off();
+  const ref=db.ref('rooms/'+S.roomCode+'/cardAssign/'+S.currentQ+'/team'+S.teamIdx+'/buzz');
+  buzzListener=ref;
+  ref.on('value',snap=>{
+    const data=snap.val();
+    if(!data) return;
+    clearInterval(S.timerIv);
+    const correct=data.isCorrect;
+    resolveStudentQuestion(q, correct, data.buzzerUID===S.uid);
+  });
+}
+
+function buzzIn(){
+  if(S.buzzed||!S.myCardIsCorrect) return;
+  S.buzzed=true;
+  const btn=$('buzzBtn'); btn.className='buzz-btn sent'; btn.textContent='回答中...'; btn.disabled=true;
+  clearInterval(S.timerIv);
+  db.ref('rooms/'+S.roomCode+'/cardAssign/'+S.currentQ+'/team'+S.teamIdx+'/buzz').set({
+    isCorrect: true, buzzerUID: S.uid, buzzerName: S.name
+  });
+}
+
+function autoNextQuestion(q){
+  // Time up — move on with no buzz = wrong
+  if(buzzListener) buzzListener.off();
+  const btn=$('buzzBtn'); btn.disabled=true;
+  db.ref('rooms/'+S.roomCode+'/cardAssign/'+S.currentQ+'/team'+S.teamIdx+'/buzz').set({
+    isCorrect:false, buzzerUID:null, buzzerName:'(時間切れ)'
+  });
+  resolveStudentQuestion(q, false, false);
+}
+
+function resolveStudentQuestion(q, correct, isBuzzer){
+  if(buzzListener){ buzzListener.off(); buzzListener=null; }
+  clearInterval(S.timerIv);
+  const btn=$('buzzBtn');
+
+  // Show round result briefly
+  showScreen('s-student-rr');
+  if(correct){
+    $('rrIcon').textContent='✅'; $('rrTitle').textContent='正解！';
+    $('rrSub').textContent=`正解は「${q.term}」でした`;
+    S.score++;
+  } else {
+    $('rrIcon').textContent='❌'; $('rrTitle').textContent='不正解...';
+    $('rrSub').textContent=`正解は「${q.term}」でした`;
+  }
+
+  // Update Firebase progress
+  S.currentQ++;
+  db.ref('rooms/'+S.roomCode+'/players/'+S.uid).update({
+    solved: S.currentQ, score: S.score, currentQ: S.currentQ
+  });
+
+  setTimeout(()=>{ loadStudentQuestion(); }, 1800);
+}
+
+function studentDone(){
+  clearInterval(S.timerIv);
+  db.ref('rooms/'+S.roomCode+'/players/'+S.uid).update({ done:true, score: S.score });
+  showScreen('s-student-done');
+  $('doneScore').textContent=`${S.score} / ${S.questions.length} 正解`;
+  // Listen for results
+  db.ref('rooms/'+S.roomCode+'/status').on('value',snap=>{
+    if(snap.val()==='results') showStudentResults();
+  });
+}
+
+function showStudentResults(){
+  db.ref('rooms/'+S.roomCode).once('value',snap=>{
+    const room=snap.val()||{};
+    const scores=room.scores||[];
+    const names=room.teamNames||room.teams||[];
+    showScreen('s-student-results');
+    const sorted=scores.map((s,i)=>({s,name:names[i]||`チーム${i+1}`,i})).sort((a,b)=>b.s-a.s);
+    $('sResWinner').textContent=sorted.length?`${sorted[0].name} の優勝！🎉`:'結果発表';
+    const tbl=$('sResFinal'); tbl.innerHTML='';
+    sorted.forEach((item,rank)=>{
+      const row=document.createElement('div'); row.className='final-row';
+      row.innerHTML=`<span>${['🥇','🥈','🥉'][rank]||rank+1+'.'}  ${esc(item.name)}</span><span style="font-size:18px;font-weight:700">${item.s} pt</span>`;
+      tbl.appendChild(row);
+    });
+  });
+}
+
+// ══════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════
+rebuildTeamNames();
+addPair('apple','りんご'); addPair('book','本'); addPair('cat','猫'); addPair('dog','犬');
+syncPairs();
+
+// QR auto-fill
+const params=new URLSearchParams(location.search);
+const joinParam=params.get('join');
+if(joinParam){
+  showScreen('s-student-join');
+  $('joinCode').value=joinParam.toUpperCase().slice(0,4);
+  $('joinName').focus();
+}
+</script>
+</body>
+</html>
