@@ -799,6 +799,7 @@ function loadStudentQuestion(){
 
   S.myIsCorrect=S.sessionWords.includes(q.term);
   S.buzzed=false;
+  S.resolved=false;
 
   showScreen('s-student-quiz');
   $('sqRound').textContent=`Q ${S.currentQ+1} / ${total}`;
@@ -881,6 +882,8 @@ function listenBuzz(q){
     buzzListenerRef=ref;
     ref.on('value',snap=>{
       const data=snap.val(); if(!data)return;
+      // Detach immediately so a later value event can't trigger a second resolve (skips a question)
+      if(buzzListenerRef){buzzListenerRef.off();buzzListenerRef=null;}
       clearInterval(S.timerIv);
       revealChoices(data.buzzerUID,data.isCorrect,data.word,q.term,()=>{
         resolveStudentQ(q,data.isCorrect);
@@ -910,6 +913,8 @@ function timeUpStudent(q){
 }
 
 function resolveStudentQ(q,correct){
+  if(S.resolved) return; // guard: only advance once per question (prevents skipping)
+  S.resolved=true;
   if(buzzListenerRef){buzzListenerRef.off();buzzListenerRef=null;}
   clearInterval(S.timerIv);
   showScreen('s-student-rr');
