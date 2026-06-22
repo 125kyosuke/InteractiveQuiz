@@ -667,18 +667,23 @@ function showHostResults(){
       row.innerHTML=`<span style="font-size:14px;color:rgba(255,255,255,.45)">${['1st','2nd','3rd'][rank]||(rank+1)+'th'}</span><span style="font-weight:700;font-size:16px;color:rgba(255,255,255,.9)">${esc(H.teams[item.i].name)}</span><span style="font-size:20px;font-weight:800;color:${tm(item.i).bar}">${item.s} pts</span>`;
       tbl.appendChild(row);
     });
-    // Missed questions: collect from all players, deduplicated
+    // Missed questions: collect from all players, deduplicated.
+    // Also count how many distinct teams missed each term.
     const missedMap={};
     Object.values(H.players).forEach(p=>{
-      if(p.missed) p.missed.forEach(m=>{ missedMap[m.term]={term:m.term,def:m.def}; });
+      if(p.missed) p.missed.forEach(m=>{
+        if(!missedMap[m.term]) missedMap[m.term]={term:m.term,def:m.def,teams:new Set()};
+        if(p.teamIdx!=null) missedMap[m.term].teams.add(p.teamIdx);
+      });
     });
+    const totalTeams=H.teams.length;
     const missedList=Object.values(missedMap);
     const missedDiv=$('resMissed'); missedDiv.innerHTML='';
     if(missedList.length){
       const sec=document.createElement('div');
       sec.style.cssText='background:rgba(255,255,255,.06);border:0.5px solid rgba(255,255,255,.1);border-radius:14px;padding:1rem 1.25rem;margin-top:1rem;text-align:left;width:100%';
       sec.innerHTML='<div style="font-size:13px;font-weight:700;color:rgba(255,255,255,.5);margin-bottom:.75rem;text-transform:uppercase;letter-spacing:.06em">Missed questions</div>'
-        +missedList.map(q=>`<div style="display:flex;gap:12px;padding:8px 0;border-bottom:0.5px solid rgba(255,255,255,.07);font-size:13px;align-items:baseline"><span style="font-weight:700;color:rgba(255,255,255,.9);min-width:100px;flex-shrink:0">${esc(q.term)}</span><span style="color:rgba(255,255,255,.4)">${esc(q.def)}</span></div>`).join('');
+        +missedList.map(q=>{const n=q.teams.size;return `<div style="display:flex;gap:12px;padding:8px 0;border-bottom:0.5px solid rgba(255,255,255,.07);font-size:13px;align-items:baseline"><span style="font-weight:700;color:rgba(255,255,255,.9);min-width:100px;flex-shrink:0">${esc(q.term)}</span><span style="flex:1;color:rgba(255,255,255,.4)">${esc(q.def)}</span><span style="flex-shrink:0;font-size:11px;font-weight:600;color:rgba(255,255,255,.3);white-space:nowrap" title="Teams that missed this word">${n}/${totalTeams} teams missed</span></div>`;}).join('');
       missedDiv.appendChild(sec);
     }
     showScreen('s-host-results');sfxWin();setTimeout(()=>spawnConfetti('confettiBox'),200);
