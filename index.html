@@ -620,7 +620,8 @@ function _startGame(){
     pu[uid]={...p,questions:teamQ[p.teamIdx]||shuffle([...H.pairs]).slice(0,H.totalQ),currentQ:0,score:0,solved:0,done:false};
     H.players[uid]=pu[uid];
   });
-  dbUpdate('rooms/'+H.roomCode,{status:'game',players:pu,scores:H.scores,teamQ})
+  // Clear leftover scoring/assignment data so points = THIS round's team correct count
+  dbUpdate('rooms/'+H.roomCode,{status:'game',players:pu,scores:H.scores,teamQ,teamSolved:null,sessionCards:null,cardAssign:null})
     .then(()=>{startBGM();showScreen('s-host-game');listenHostProgress();})
     .catch(e=>{$('lobbyErr').textContent='Error: '+e.message;});
 }
@@ -687,7 +688,8 @@ function restartGame(){
   const teamQ={};H.teams.forEach((_,ti)=>teamQ[ti]=shuffle([...H.pairs]));
   const pu={};Object.entries(H.players).forEach(([uid,p])=>{pu[uid]={...p,questions:teamQ[p.teamIdx]||shuffle([...H.pairs]),currentQ:0,score:0,solved:0,done:false};H.players[uid]=pu[uid];});
   H.scores=new Array(H.teams.length).fill(0);
-  dbUpdate('rooms/'+H.roomCode,{status:'game',players:pu,scores:H.scores,teamQ}).then(()=>{startBGM();showScreen('s-host-game');listenHostProgress();});
+  // Reset per-team scoring/assignment data for the new round
+  dbUpdate('rooms/'+H.roomCode,{status:'game',players:pu,scores:H.scores,teamQ,teamSolved:null,sessionCards:null,cardAssign:null}).then(()=>{startBGM();showScreen('s-host-game');listenHostProgress();});
 }
 
 // ═══════════════════════════════════
